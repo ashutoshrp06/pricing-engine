@@ -25,4 +25,7 @@ include_directories(${nlohmann_json_SOURCE_DIR})
 
 add_executable(engine
     src/main.cpp
+    src/lp_simulator.cpp
+    src/signal_generator.cpp
+    src/liquidity_taker.cpp
 )
