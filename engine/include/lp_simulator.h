@@ -20,9 +20,9 @@ public:
     void start();   // spawns the thread
     void join();    // blocks until thread exits
 
-private:
     void run();
 
+private:
     struct LpState {
         LpId         id;
         Price        mid;

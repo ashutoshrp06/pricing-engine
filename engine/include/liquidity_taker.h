@@ -17,8 +17,10 @@ public:
     void start();
     void join();
 
-private:
     void run();
+
+
+private:
 
     const Config&                        cfg_;
     SPSCQueue<LtOrder, QUEUE_CAPACITY>*  queue_;

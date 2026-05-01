@@ -4,68 +4,64 @@
 #include "lp_simulator.h"
 #include "signal_generator.h"
 #include "liquidity_taker.h"
+#include "pricing_engine.h"
 
 #include <atomic>
-#include <iostream>
 #include <thread>
-#include <chrono>
 #include <csignal>
+#include <cstdio>
+#include <chrono>
 
 static std::atomic<bool> running{true};
 
-static void signal_handler(int) {
-    running = false;
+static void on_signal(int) {
+    running.store(false, std::memory_order_relaxed);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char* argv[]) {
     Config cfg = parse_args(argc, argv);
 
-    std::signal(SIGINT,  signal_handler);
-    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT,  on_signal);
+    std::signal(SIGTERM, on_signal);
 
-    // Three queues, one per producer thread
     SPSCQueue<LpQuote,     QUEUE_CAPACITY> lp_queue;
     SPSCQueue<SignalUpdate, QUEUE_CAPACITY> sg_queue;
     SPSCQueue<LtOrder,     QUEUE_CAPACITY> lt_queue;
 
-    LpSimulator     lp_sim(cfg, &lp_queue, &running);
-    SignalGenerator sig_gen(cfg, &sg_queue, &running);
-    LiquidityTaker  lt(cfg,     &lt_queue, &running);
+    LpSimulator      lp_sim(cfg, &lp_queue, &running);
+    SignalGenerator  sig_gen(cfg, &sg_queue, &running);
+    LiquidityTaker   lt(cfg, &lt_queue, &running);
+    PricingEngine    pe(cfg, &lp_queue, &sg_queue, &lt_queue);
 
-    // Stub consumer: drain all three queues, count events per second
-    uint64_t lp_count = 0, sg_count = 0, lt_count = 0;
-    auto last_print = std::chrono::steady_clock::now();
+    std::thread lp_thread([&]{ lp_sim.run(); });
+    std::thread sg_thread([&]{ sig_gen.run(); });
+    std::thread lt_thread([&]{ lt.run(); });
+    std::thread pe_thread([&]{ pe.run(running); });
 
-    lp_sim.start();
-    sig_gen.start();
-    lt.start();
-
-    // Optional duration-based shutdown
-    auto deadline = std::chrono::steady_clock::now() +
-                    std::chrono::seconds(cfg.duration_s > 0 ? cfg.duration_s : 999999);
-
-    while (running) {
-        if (auto q = lp_queue.pop()) { ++lp_count; (void)q; }
-        if (auto q = sg_queue.pop()) { ++sg_count; (void)q; }
-        if (auto q = lt_queue.pop()) { ++lt_count; (void)q; }
-
-        auto now = std::chrono::steady_clock::now();
-
-        if (now - last_print >= std::chrono::seconds(1)) {
-            std::cout << "LP: " << lp_count
-                      << "  SG: " << sg_count
-                      << "  LT: " << lt_count << "\n";
-            lp_count = sg_count = lt_count = 0;
-            last_print = now;
-        }
-
-        if (cfg.duration_s > 0 && now >= deadline) running = false;
+    if (cfg.duration_s > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(cfg.duration_s));
+        running.store(false, std::memory_order_relaxed);
     }
 
-    lp_sim.join();
-    sig_gen.join();
-    lt.join();
+    lp_thread.join();
+    sg_thread.join();
+    lt_thread.join();
+    pe_thread.join();
 
-    std::cout << "pricing-engine stopped cleanly\n";
+    auto snap = pe.inventory().snapshot();
+    std::printf("\n--- Phase 3 Summary ---\n");
+    std::printf("Fill count (PE)  : %lld\n",  snap.fill_count);
+    std::printf("Fill count (LP)  : %lld\n",  pe.lt_to_lp_count());
+    std::printf("PE fill share    : %.1f%%\n",
+        (snap.fill_count + pe.lt_to_lp_count()) > 0
+        ? 100.0 * snap.fill_count / (snap.fill_count + pe.lt_to_lp_count())
+        : 0.0);
+    std::printf("Hedge count      : %lld\n",  snap.hedge_count);
+    std::printf("Final position   : %lld\n",  snap.position);
+    std::printf("Realised PnL     : %lld pip-units\n", snap.realised_pnl);
+    std::printf("Unrealised PnL   : %lld pip-units\n", snap.unrealised_pnl);
+    std::printf("Spread cap mean  : %.2f pip-units\n", snap.spread_capture_mean);
+    std::printf("Peak abs position: %lld\n", snap.position_peak_abs);
+
     return 0;
 }

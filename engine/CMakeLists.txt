@@ -28,4 +28,7 @@ add_executable(engine
     src/lp_simulator.cpp
     src/signal_generator.cpp
     src/liquidity_taker.cpp
+    src/consolidated_book.cpp
+    src/pricing_engine.cpp
+    src/inventory.cpp
 )

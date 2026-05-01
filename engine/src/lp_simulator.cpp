@@ -4,9 +4,10 @@
 // Mid price at startup: 1.10000 in FX terms = 110000 internal pips
 static constexpr Price INITIAL_MID = 110000;
 // How far the mid walk can step per quote, in pips
-static constexpr int MID_WALK_STEP = 2;
+static constexpr int MID_WALK_STEP = 1;
+static constexpr int MID_WALK_CLAMP = 3;
 // Half-spread around mid, in pips. Base is 1 pip each side
-static constexpr int BASE_HALF_SPREAD = 1;
+static constexpr int BASE_HALF_SPREAD = 5;
 
 using Clock = std::chrono::steady_clock;
 
@@ -45,7 +46,7 @@ void LpSimulator::join() {
 
 void LpSimulator::run() {
     std::uniform_int_distribution<int> walk_dist(-MID_WALK_STEP, MID_WALK_STEP);
-    std::uniform_int_distribution<int> spread_dist(0, 1); // small per-quote spread variation
+    std::uniform_int_distribution<int> spread_dist(0, 2); // small per-quote spread variation
 
     while (*running_) {
         int64_t t = now_ns();
@@ -57,8 +58,8 @@ void LpSimulator::run() {
             int step = walk_dist(lp.rng);
             // Clamp mid so it doesn't drift unboundedly far from INITIAL_MID
             Price new_mid = static_cast<Price>(
-                std::max(static_cast<int64_t>(INITIAL_MID - 500),
-                std::min(static_cast<int64_t>(INITIAL_MID + 500),
+                std::max(static_cast<int64_t>(INITIAL_MID - MID_WALK_CLAMP),
+                std::min(static_cast<int64_t>(INITIAL_MID + MID_WALK_CLAMP),
                          static_cast<int64_t>(lp.mid) + step)));
             lp.mid = new_mid;
 
