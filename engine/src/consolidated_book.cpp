@@ -10,8 +10,8 @@ ConsolidatedBook::ConsolidatedBook()
 }
 
 void ConsolidatedBook::update_lp_quote(int lp_id, int64_t bid, int64_t ask) {
-    bids_[lp_id] = bid;
-    asks_[lp_id] = ask;
+    bids_[lp_id + 1] = bid;
+    asks_[lp_id + 1] = ask;
     rescan();
 }
 
@@ -25,6 +25,18 @@ int64_t ConsolidatedBook::mid() const {
     if (best_bid_ == 0 || best_ask_ == 0) return 0;
     return (best_bid_ + best_ask_) / 2;
 }
+
+int64_t ConsolidatedBook::lp_mid() const {
+    int64_t lp_bb = 0;
+    int64_t lp_ba = std::numeric_limits<int64_t>::max();
+    for (int i = 1; i < NUM_PARTICIPANTS; ++i) {  // skip slot 0 (PE)
+        if (bids_[i] > lp_bb) lp_bb = bids_[i];
+        if (asks_[i] > 0 && asks_[i] < lp_ba) lp_ba = asks_[i];
+    }
+    if (lp_bb == 0 || lp_ba == std::numeric_limits<int64_t>::max()) return 0;
+    return (lp_bb + lp_ba) / 2;
+}
+
 
 int64_t ConsolidatedBook::spread() const {
     if (best_bid_ == 0 || best_ask_ == 0) return 0;

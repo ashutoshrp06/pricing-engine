@@ -16,10 +16,10 @@ struct Config {
     int      duration_s            = 0;      // 0 = run until Ctrl-C
     uint64_t seed                  = 42;
 
-    double   alpha                 = 0.5;    // ticks per signal unit
-    double   beta                  = 0.1;    // ticks per inventory unit
+    double   alpha                 = 0.1;    // ticks per signal unit
+    double   beta                  = 0.4;    // ticks per inventory unit
     int      base_spread           = 1;      // ticks
-    int      hedge_threshold       = 20;    // inventory units
+    int      hedge_threshold       = 60;    // inventory units, was 20
 
     int      lp_to_pe_latency_us   = 0;
     int      lt_to_pe_latency_us   = 0;

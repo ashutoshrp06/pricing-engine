@@ -29,17 +29,27 @@ void PricingEngine::run(std::atomic<bool>& running) {
     }
 }
 
+void PricingEngine::record_latency(Timestamp production_ts) {
+    int64_t delta = now_ns() - production_ts;
+    lat_buf_[lat_idx_] = delta;
+    lat_idx_ = (lat_idx_ + 1) % LAT_BUF_SIZE;
+    if (lat_count_ < LAT_BUF_SIZE) ++lat_count_;
+}
+
 void PricingEngine::handle_lp_quote(const LpQuote& q) {
+    record_latency(q.production_timestamp);
     book_.update_lp_quote(q.lp_id, q.bid, q.ask);
     reprice();
 }
 
 void PricingEngine::handle_signal(const SignalUpdate& s) {
+    record_latency(s.production_timestamp);
     signal_ = s.value;
     reprice();
 }
 
 void PricingEngine::handle_lt_order(const LtOrder& o) {
+    record_latency(o.production_timestamp);
     int64_t fill_price = 0;
     bool    pe_wins    = false;
 
@@ -61,7 +71,7 @@ void PricingEngine::handle_lt_order(const LtOrder& o) {
 
     if (pe_wins) {
         ++lt_to_pe_count_;
-        inventory_.on_fill(o.side, fill_price, o.size, book_.mid(), now_ns());
+        inventory_.on_fill(o.side, fill_price, o.size, book_.lp_mid(), now_ns());
     } else {
         ++lt_to_lp_count_;
     }
@@ -70,7 +80,7 @@ void PricingEngine::handle_lt_order(const LtOrder& o) {
 }
 
 void PricingEngine::reprice() {
-    int64_t mid = book_.mid();
+    int64_t mid = book_.lp_mid();
     if (mid == 0) return; // book not yet populated
 
     // quote_mid skewed by signal and inventory.
@@ -136,5 +146,14 @@ void PricingEngine::write_snapshot() {
     snapshot_.data.pe_ask              = pe_ask_;
     snapshot_.data.best_bid            = book_.best_bid();
     snapshot_.data.best_ask            = book_.best_ask();
+    if (lat_count_ > 0) {
+        std::array<int64_t, LAT_BUF_SIZE> tmp;
+        int n = lat_count_;
+        std::copy(lat_buf_.begin(), lat_buf_.begin() + n, tmp.begin());
+        std::sort(tmp.begin(), tmp.begin() + n);
+        snapshot_.data.latency_p50_ns   = tmp[static_cast<int>(n * 0.50)];
+        snapshot_.data.latency_p99_ns   = tmp[static_cast<int>(n * 0.99)];
+        snapshot_.data.latency_p99_9_ns = tmp[static_cast<int>(n * 0.999)];
+    }
     snapshot_.seq.fetch_add(1, std::memory_order_release);
 }

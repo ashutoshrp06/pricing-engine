@@ -67,7 +67,5 @@ int main(int argc, char* argv[]) {
     std::printf("Spread cap mean  : %.2f pip-units\n", snap.spread_capture_mean);
     std::printf("Peak abs position: %lld\n", snap.position_peak_abs);
 
-    publisher.join();
-
     return 0;
 }

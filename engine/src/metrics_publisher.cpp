@@ -48,13 +48,16 @@ void MetricsPublisher::run() {
     }
     listen(server_fd, BACKLOG);
 
-    struct timeval tv{1, 0};
-    setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-
     int interval_us = 1'000'000 / cfg_.publisher_rate_hz;
 
     while (running_.load()) {
-        // Block until a client connects. Engine keeps running, publisher waits.
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(server_fd, &readfds);
+        struct timeval timeout{0, 200'000};
+        int ready = select(server_fd + 1, &readfds, nullptr, nullptr, &timeout);
+        if (ready <= 0) continue; // timeout or error, loop and check running_
+
         int client_fd = accept(server_fd, nullptr, nullptr);
         if (client_fd < 0) continue;
 
@@ -77,6 +80,9 @@ void MetricsPublisher::run() {
             msg["pe_ask"]              = snap.pe_ask;
             msg["best_bid"]            = snap.best_bid;
             msg["best_ask"]            = snap.best_ask;
+            msg["latency_p50_ns"]   = snap.latency_p50_ns;
+            msg["latency_p99_ns"]   = snap.latency_p99_ns;
+            msg["latency_p99_9_ns"] = snap.latency_p99_9_ns;
 
             std::string line = msg.dump() + "\n";
             ssize_t sent = send(client_fd, line.c_str(), line.size(), MSG_NOSIGNAL);

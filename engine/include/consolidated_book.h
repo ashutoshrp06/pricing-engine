@@ -24,6 +24,7 @@ public:
 
     // Returns 0 if either side absent.
     int64_t mid()    const;
+    int64_t lp_mid() const;
     int64_t spread() const;
 
     // For LT matching

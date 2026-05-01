@@ -23,6 +23,9 @@ struct MetricsSnapshot {
     int64_t pe_ask;
     int64_t best_bid;
     int64_t best_ask;
+    int64_t latency_p50_ns;
+    int64_t latency_p99_ns;
+    int64_t latency_p99_9_ns;
 };
 struct SequencedSnapshot {
     std::atomic<uint64_t> seq{0};   // odd = write in progress
@@ -50,6 +53,7 @@ private:
     void handle_signal(const SignalUpdate& s);
     void handle_lt_order(const LtOrder& o);
     void reprice();
+    void record_latency(Timestamp production_ts);
 
     const Config& cfg_;
 
@@ -73,4 +77,9 @@ private:
     void              write_snapshot();
 
     LatencyBuffer<PeQuoteUpdate, 256> pe_delay_buf_;
+
+    static constexpr int LAT_BUF_SIZE = 2048;
+    std::array<int64_t, LAT_BUF_SIZE> lat_buf_{};
+    int lat_idx_ = 0;
+    int lat_count_ = 0;
 };
