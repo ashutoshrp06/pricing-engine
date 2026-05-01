@@ -21,4 +21,8 @@ struct LtOrder {
     Timestamp production_timestamp;
 };
 
+struct PeQuoteUpdate {
+    int64_t bid;
+    int64_t ask;
+};
 #endif // EVENTS_H

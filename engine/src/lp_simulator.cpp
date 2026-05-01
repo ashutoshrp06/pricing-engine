@@ -34,6 +34,7 @@ LpSimulator::LpSimulator(const Config& cfg,
         s.next_quote_ns = t + (i * interval_ns / cfg_.num_lps);
         lps_.push_back(std::move(s));
     }
+    delay_buf_.set_delay_ns(cfg_.lp_to_pe_latency_us * 1000);
 }
 
 void LpSimulator::start() {
@@ -71,9 +72,13 @@ void LpSimulator::run() {
             q.ask                  = lp.mid + static_cast<Price>(half_spread);
             q.production_timestamp = t;
 
-            queue_->push(q);
+            delay_buf_.push(q);
 
             lp.next_quote_ns += lp.interval_ns;
         }
+
+        delay_buf_.drain([&](const LpQuote& q) {
+            queue_->push(q);
+        });
     }
 }

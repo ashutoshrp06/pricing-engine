@@ -31,4 +31,5 @@ add_executable(engine
     src/consolidated_book.cpp
     src/pricing_engine.cpp
     src/inventory.cpp
+    src/metrics_publisher.cpp
 )

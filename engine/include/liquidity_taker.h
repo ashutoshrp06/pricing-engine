@@ -4,6 +4,7 @@
 #include "config.h"
 #include "events.h"
 #include "spsc_queue.h"
+#include "latency_buffer.h"
 #include <atomic>
 #include <random>
 #include <thread>
@@ -26,6 +27,7 @@ private:
     SPSCQueue<LtOrder, QUEUE_CAPACITY>*  queue_;
     std::atomic<bool>*                   running_;
     std::thread                          thread_;
+    LatencyBuffer<LtOrder, 256>          delay_buf_;
 };
 
 #endif // LIQUIDITY_TAKER_H

@@ -4,6 +4,7 @@
 #include "config.h"
 #include "events.h"
 #include "spsc_queue.h"
+#include "latency_buffer.h"
 #include <atomic>
 #include <random>
 #include <vector>
@@ -36,6 +37,7 @@ private:
     std::atomic<bool>*                  running_;
     std::vector<LpState>                lps_;
     std::thread                         thread_;
+    LatencyBuffer<LpQuote, 256>         delay_buf_;
 };
 
 #endif // LP_SIMULATOR_H

@@ -14,7 +14,7 @@ struct SPSCQueue {
     alignas(64) std::atomic<size_t> tail = 0;
     std::array<T, Capacity> array;
 
-    bool push(T& item) {
+    bool push(const T& item) {
         size_t h = head.load(std::memory_order_relaxed);
         size_t t = tail.load(std::memory_order_acquire);
         if ((h + 1) % Capacity == t) return false;

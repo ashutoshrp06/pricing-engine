@@ -14,10 +14,15 @@ PricingEngine::PricingEngine(const Config& cfg,
     : cfg_(cfg), lp_q_(lp_q), sg_q_(sg_q), lt_q_(lt_q),
       signal_(0.0),
       rng_(cfg.seed ^ 0xDEADBEEF) // distinct seed from producers
-{}
+{
+    pe_delay_buf_.set_delay_ns(cfg_.pe_to_book_latency_us * 1000);
+}
 
 void PricingEngine::run(std::atomic<bool>& running) {
     while (running.load(std::memory_order_relaxed)) {
+        pe_delay_buf_.drain([&](const PeQuoteUpdate& u) {
+            book_.update_pe_quote(u.bid, u.ask);
+        });
         if (auto e = lp_q_->pop())  handle_lp_quote(*e);
         if (auto e = sg_q_->pop())  handle_signal(*e);
         if (auto e = lt_q_->pop())  handle_lt_order(*e);
@@ -77,9 +82,9 @@ void PricingEngine::reprice() {
     int64_t half_spread = static_cast<int64_t>(
         std::round(cfg_.base_spread * (1.0 + (1.0 - std::abs(signal_)))));
 
-    int64_t pe_bid = quote_mid - half_spread;
-    int64_t pe_ask = quote_mid + half_spread;
-    book_.update_pe_quote(pe_bid, pe_ask);
+    pe_bid_ = quote_mid - half_spread;
+    pe_ask_ = quote_mid + half_spread;
+    pe_delay_buf_.push({pe_bid_, pe_ask_});
 
     // Hedge if inventory exceeds threshold.
     int64_t pos = inventory_.position();
@@ -93,7 +98,7 @@ void PricingEngine::reprice() {
             quote_mid = mid
                 + static_cast<int64_t>(std::round(cfg_.alpha * signal_))
                 - static_cast<int64_t>(std::round(cfg_.beta * static_cast<double>(inventory_.position())));
-            book_.update_pe_quote(quote_mid - half_spread, quote_mid + half_spread);
+            pe_delay_buf_.push({quote_mid - half_spread, quote_mid + half_spread});
         }
     } else if (pos <= -cfg_.hedge_threshold) {
         // Short inventory -> buy from best ask LP.
@@ -105,8 +110,31 @@ void PricingEngine::reprice() {
             quote_mid = mid
                 + static_cast<int64_t>(std::round(cfg_.alpha * signal_))
                 - static_cast<int64_t>(std::round(cfg_.beta * static_cast<double>(inventory_.position())));
-            book_.update_pe_quote(quote_mid - half_spread, quote_mid + half_spread);
+            pe_delay_buf_.push({quote_mid - half_spread, quote_mid + half_spread});
         }
     }
+
     inventory_.update_unrealised(mid);
+    
+    write_snapshot();
+}
+
+void PricingEngine::write_snapshot() {
+    InventorySnapshot inv = inventory_.snapshot();
+    snapshot_.seq.fetch_add(1, std::memory_order_release);
+    snapshot_.data.timestamp_ns        = now_ns();
+    snapshot_.data.position            = inv.position;
+    snapshot_.data.realised_pnl        = inv.realised_pnl;
+    snapshot_.data.unrealised_pnl      = inv.unrealised_pnl;
+    snapshot_.data.fill_count          = inv.fill_count;
+    snapshot_.data.lt_to_pe_count      = lt_to_pe_count_;
+    snapshot_.data.lt_to_lp_count      = lt_to_lp_count_;
+    snapshot_.data.fill_rate_per_sec   = inv.fill_rate_per_sec;
+    snapshot_.data.spread_capture_mean = inv.spread_capture_mean;
+    snapshot_.data.mid_price           = book_.mid();
+    snapshot_.data.pe_bid              = pe_bid_;
+    snapshot_.data.pe_ask              = pe_ask_;
+    snapshot_.data.best_bid            = book_.best_bid();
+    snapshot_.data.best_ask            = book_.best_ask();
+    snapshot_.seq.fetch_add(1, std::memory_order_release);
 }

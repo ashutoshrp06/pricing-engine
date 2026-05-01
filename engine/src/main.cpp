@@ -5,6 +5,7 @@
 #include "signal_generator.h"
 #include "liquidity_taker.h"
 #include "pricing_engine.h"
+#include "metrics_publisher.h"
 
 #include <atomic>
 #include <thread>
@@ -32,11 +33,14 @@ int main(int argc, char* argv[]) {
     SignalGenerator  sig_gen(cfg, &sg_queue, &running);
     LiquidityTaker   lt(cfg, &lt_queue, &running);
     PricingEngine    pe(cfg, &lp_queue, &sg_queue, &lt_queue);
+    MetricsPublisher publisher(cfg, pe);
 
     std::thread lp_thread([&]{ lp_sim.run(); });
     std::thread sg_thread([&]{ sig_gen.run(); });
     std::thread lt_thread([&]{ lt.run(); });
     std::thread pe_thread([&]{ pe.run(running); });
+
+    publisher.start();
 
     if (cfg.duration_s > 0) {
         std::this_thread::sleep_for(std::chrono::seconds(cfg.duration_s));
@@ -62,6 +66,8 @@ int main(int argc, char* argv[]) {
     std::printf("Unrealised PnL   : %lld pip-units\n", snap.unrealised_pnl);
     std::printf("Spread cap mean  : %.2f pip-units\n", snap.spread_capture_mean);
     std::printf("Peak abs position: %lld\n", snap.position_peak_abs);
+
+    publisher.join();
 
     return 0;
 }
