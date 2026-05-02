@@ -34,7 +34,7 @@ Fill rate sits between 30.6 and 31.3 fills/sec across all runs and all latency v
 
 ![Exposure versus Injected Latency](docs/latency_exposure.png)
 
-PE-to-book drives exposure up sharply: position std dev goes from 6.33 at 0us to 7.28 at 10ms. LP-to-PE stays flat throughout. LT-to-PE dips slightly below baseline at high latency, not above it.
+PE-to-book is the only link that moves exposure. Position std dev sits at 5.95 at baseline, stays flat under PE-to-book latency until 1ms (6.07), then rises sharply to 7.07 at 10ms. Combined tracks it closely, reaching 7.19 at 10ms. LP-to-PE and LT-to-PE both stay below baseline throughout the range, varying between 5.67 and 5.96. No directional rise on either link.
 
 ## Discussion
 
@@ -49,8 +49,8 @@ The most robust result in the study. Stale PE quotes stay visible after PE would
 **Prediction 4 (fill rate direction ambiguous): correct.** 
 Fill rate is flat. The effects of stale quotes attracting extra fills and delayed hedge orders missing fills cancel out at these latency scales.
 
-**Prediction 5 (exposure rises on every link): partially correct.** 
-PE-to-book drives exposure up as predicted. LP-to-PE is flat. LT-to-PE goes the wrong direction. One of three links behaved as predicted.
+**Prediction 5 (exposure rises on every link): wrong for two of three links.**
+PE-to-book raised exposure as predicted, clearly and monotonically above 1ms. LP-to-PE and LT-to-PE both stayed flat or slightly below baseline. The hedge logic fires on inventory sampled inside the PE thread; LP and LT latency delays the inputs to that logic but not the hedge delivery itself, which explains why only the PE-to-book link, which delays the hedge order landing in the book, actually raises exposure.
 
 The main result: PE-to-book latency is the most damaging link in this simulation. Quote update latency to the venue is the primary latency risk in any market-making system, and this study reproduces that.
 
