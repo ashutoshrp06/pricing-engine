@@ -24,9 +24,18 @@ void PricingEngine::run(std::atomic<bool>& running) {
         pe_delay_buf_.drain([&](const PeQuoteUpdate& u) {
             book_.update_pe_quote(u.bid, u.ask);
         });
-        if (auto e = lp_q_->pop())  handle_lp_quote(*e);
-        if (auto e = sg_q_->pop())  handle_signal(*e);
-        if (auto e = lt_q_->pop())  handle_lt_order(*e);
+        if (auto e = lp_q_->pop())  {
+            handle_lp_quote(*e);
+            ++events_drained_;
+        }
+        if (auto e = sg_q_->pop())  {
+            handle_signal(*e);
+            ++events_drained_;
+        }
+        if (auto e = lt_q_->pop())  {
+            handle_lt_order(*e);
+            ++events_drained_;
+        }
     }
 }
 
@@ -126,6 +135,13 @@ void PricingEngine::reprice() {
     }
 
     inventory_.update_unrealised(mid);
+
+    // Welford online variance for position_std
+    double pos_d = static_cast<double>(inventory_.position());
+    ++pos_sample_n_;
+    double delta = pos_d - pos_mean_;
+    pos_mean_ += delta / static_cast<double>(pos_sample_n_);
+    pos_M2_   += delta * (pos_d - pos_mean_);
     
     write_snapshot();
 }
@@ -155,6 +171,9 @@ void PricingEngine::write_snapshot() {
         snapshot_.data.latency_p50_ns   = tmp[static_cast<int>(n * 0.50)];
         snapshot_.data.latency_p99_ns   = tmp[static_cast<int>(n * 0.99)];
         snapshot_.data.latency_p99_9_ns = tmp[static_cast<int>(n * 0.999)];
+        snapshot_.data.latency_max_ns = tmp[n - 1]; 
     }
+    snapshot_.data.position_std = pos_sample_n_ > 1
+        ? std::sqrt(pos_M2_ / static_cast<double>(pos_sample_n_)) : 0.0;
     snapshot_.seq.fetch_add(1, std::memory_order_release);
 }

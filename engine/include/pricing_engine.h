@@ -26,6 +26,8 @@ struct MetricsSnapshot {
     int64_t latency_p50_ns;
     int64_t latency_p99_ns;
     int64_t latency_p99_9_ns;
+    double  position_std = 0.0;
+    int64_t latency_max_ns;
 };
 struct SequencedSnapshot {
     std::atomic<uint64_t> seq{0};   // odd = write in progress
@@ -47,6 +49,12 @@ public:
     int64_t lt_to_lp_count() const { return lt_to_lp_count_; }
 
     const SequencedSnapshot& snapshot() const { return snapshot_; }
+
+    uint64_t events_drained() const { return events_drained_.load(std::memory_order_relaxed); }
+
+    double position_std() const {
+        return pos_sample_n_ > 1 ? std::sqrt(pos_M2_ / pos_sample_n_) : 0.0;
+    }
 
 private:
     void handle_lp_quote(const LpQuote& q);
@@ -70,6 +78,8 @@ private:
     int64_t lt_to_lp_count_ = 0;
     int64_t lt_to_pe_count_ = 0;
 
+    std::atomic<uint64_t> events_drained_{0};
+
     SequencedSnapshot snapshot_;
     
     int64_t           pe_bid_ = 0;
@@ -82,4 +92,9 @@ private:
     std::array<int64_t, LAT_BUF_SIZE> lat_buf_{};
     int lat_idx_ = 0;
     int lat_count_ = 0;
+
+    // Welford online variance for position tracking
+    uint64_t pos_sample_n_   = 0;
+    double   pos_mean_       = 0.0;
+    double   pos_M2_         = 0.0;
 };

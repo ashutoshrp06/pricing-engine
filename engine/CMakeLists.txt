@@ -23,8 +23,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 include_directories(${nlohmann_json_SOURCE_DIR})
 
-add_executable(engine
-    src/main.cpp
+add_library(engine_lib STATIC
     src/lp_simulator.cpp
     src/signal_generator.cpp
     src/liquidity_taker.cpp
@@ -33,3 +32,13 @@ add_executable(engine
     src/inventory.cpp
     src/metrics_publisher.cpp
 )
+target_include_directories(engine_lib PUBLIC include)
+
+add_executable(engine src/main.cpp)
+target_link_libraries(engine engine_lib)
+
+add_executable(bench_throughput bench/bench_throughput.cpp)
+target_link_libraries(bench_throughput engine_lib)
+
+add_executable(bench_latency bench/bench_latency.cpp)
+target_link_libraries(bench_latency engine_lib)

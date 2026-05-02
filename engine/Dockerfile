@@ -11,4 +11,6 @@ FROM --platform=linux/amd64 ubuntu:24.04
 
 WORKDIR /app
 COPY --from=build /src/build/engine .
+COPY --from=build /src/build/bench_throughput .
+COPY --from=build /src/build/bench_latency .
 ENTRYPOINT ["./engine"]
