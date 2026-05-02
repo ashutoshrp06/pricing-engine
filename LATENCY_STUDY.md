@@ -20,7 +20,7 @@ Before running the sweep:
 
 ## Methodology
 
-21 runs across four sets: baseline (all latencies at 0), LP-to-PE only, LT-to-PE only, PE-to-book only, all three combined. Latency values: 0, 100, 500, 1000, 5000, 10000 us. Each run: 60 seconds, seed 42, default load (12 LP x 500 Hz, SG 100 Hz, LT 50 Hz). Only latency varies.
+105 runs across four sets: baseline (all latencies at 0), LP-to-PE only, LT-to-PE only, PE-to-book only, all three combined. Latency values: 0, 100, 500, 1000, 5000, 10000 us. Each cell ran 5 times with seeds 42-46, 30 seconds per run. Lines in the plots show mean across seeds; shaded bands show min to max. Only latency varies between runs.
 
 ## Results
 
@@ -56,7 +56,7 @@ The main result: PE-to-book latency is the most damaging link in this simulation
 
 ## Limitations
 
-- Single seed (42). Run-to-run variance is not quantified. Some of the noise in the LP-to-PE and LT-to-PE results may be single-path artifacts.
+- S- 30 seconds per run with 5 seeds. Run-to-run variance is visible in the bands, particularly for PnL and fill rate. The PE-to-book and combined exposure results are tight enough to be reliable; the LP-to-PE PnL signal is not.
 - Single machine. Numbers are not portable across CPUs.
 - The LT has no adverse selection logic. This is the largest gap between this simulation and real market behaviour. It masks the expected LP-to-PE degradation entirely.
 - LP prices follow a deterministic random walk with no correlation to signal. Spread capture at zero latency is path variance, not edge.

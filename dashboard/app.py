@@ -1,8 +1,8 @@
 import time
-import streamlit as st
-import plotly.graph_objects as go
+import streamlit as st # type: ignore
+import plotly.graph_objects as go # type: ignore
 from data_source import DataSource
-import streamlit.components.v1 as components
+import streamlit.components.v1 as components # type: ignore
 import os
 
 st.set_page_config(

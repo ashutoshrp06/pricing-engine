@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import numpy as np
+import pandas as pd # type: ignore
+import matplotlib.pyplot as plt # type: ignore
+import matplotlib.ticker as ticker # type: ignore
+import numpy as np # type: ignore
 
 CSV = "docs/latency_results.csv"
 df = pd.read_csv(CSV)
@@ -23,22 +23,31 @@ def get_series(run_set, metric):
 
 def plot_metric(metric, ylabel, title, filename):
     fig, ax = plt.subplots(figsize=(9, 5))
-    baseline = df[df.run_set == "baseline"][metric].values[0]
+
+    # baseline: mean across seeds
+    baseline_rows = df[df.run_set == "baseline"]
+    baseline = baseline_rows[metric].mean()
 
     for (run_set, label), color in zip(SETS.items(), COLORS):
         rows = df[df.run_set == run_set].copy()
-        # use the varying latency column for x-axis
+
         if run_set == "lt_only":
-            rows = rows.sort_values("lt_to_pe_latency_us")
-            xs = [0] + list(rows["lt_to_pe_latency_us"].values)
+            lat_col = "lt_to_pe_latency_us"
         elif run_set == "pe_only":
-            rows = rows.sort_values("pe_to_book_latency_us")
-            xs = [0] + list(rows["pe_to_book_latency_us"].values)
+            lat_col = "pe_to_book_latency_us"
         else:
-            rows = rows.sort_values("lp_to_pe_latency_us")
-            xs = [0] + list(rows["lp_to_pe_latency_us"].values)
-        ys = [baseline] + list(rows[metric].values)
-        ax.plot(xs, ys, marker="o", label=label, color=color)
+            lat_col = "lp_to_pe_latency_us"
+
+        grouped = rows.groupby(lat_col)[metric].agg(["mean", "min", "max"]).reset_index()
+        grouped = grouped.sort_values(lat_col)
+
+        xs   = [0] + list(grouped[lat_col].values)
+        mean = [baseline] + list(grouped["mean"].values)
+        lo   = [baseline] + list(grouped["min"].values)
+        hi   = [baseline] + list(grouped["max"].values)
+
+        ax.plot(xs, mean, marker="o", label=label, color=color)
+        ax.fill_between(xs, lo, hi, alpha=0.15, color=color)
 
     ax.set_xscale("symlog", linthresh=50)
     ax.set_xlabel("Injected latency (us)")

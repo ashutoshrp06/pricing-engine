@@ -22,8 +22,8 @@ Target: 14,000 events/s (12,000 LP + 1,000 SG + 1,000 LT).
 
 | Metric | Native (M4) | Docker (linux/amd64) |
 |---|---|---|
-| Sustained throughput | 14,511 events/s | 14,139 events/s |
-| Peak throughput (1s window) | 14,672 events/s | 14,224 events/s |
+| Sustained throughput | 14,508 events/s | 14,139 events/s |
+| Peak throughput (1s window) | 14,695 events/s | 14,224 events/s |
 | Queue overflow events | 0 | 0 |
 
 Engine sustains above-target throughput in both environments with no queue overflow. The ~2.5% drop in Docker is Rosetta overhead. In both cases the bottleneck is the producers, not the consumer. At default load (6,150 events/s), there is significant headroom before the consumer saturates.
@@ -36,13 +36,15 @@ Percentiles explained: p50 is the median, half of events are faster than this. p
 
 | Metric | Native (M4) | Docker (linux/amd64) |
 |---|---|---|
-| p50 | 167 ns | 167 ns |
-| p99 | 375 ns | 1,875 ns |
-| p99.9 | 3,125 ns | 4,666 ns |
-| max | 10,375 ns | 22,958 ns |
+| p50 | 208 ns | 167 ns |
+| p99 | ~3,000 ns* | 1,875 ns |
+| p99.9 | unstable* | 4,666 ns |
+| max | unstable* | 22,958 ns |
 | Sample size | ~2,048 | ~2,048 |
 
-p50 is identical in both environments. The hot path cost is fixed: SPSC drain, consolidated book update, pricing logic, inventory skew. That comes to 167 ns regardless of platform. The p99 and tail diverge because macOS and Rosetta do not offer real-time scheduling. These spikes are OS preemption, not hot-path regressions. On a Linux host with `taskset` the tail would tighten.
+*Across 5 runs, p50 was stable (167-291 ns). p99 was sub-3.2us on 3 of 5 runs; the other two spiked to 100-145us. p99.9 ranged from 7.9us to 322us. This is OS scheduler preemption, not engine variance. macOS provides no real-time scheduling primitive equivalent to Linux's `chrt`. On a Linux host with `taskset` and `chrt -f`, the tail would tighten significantly. The p50 is the only stable number on this machine.
+
+p50 is the number that reflects the engine. The hot path is: SPSC drain, consolidated book update, pricing logic, inventory skew. That consistently comes out around 200 ns. Everything past p99 is the OS occasionally deciding something else matters more. Docker numbers are cleaner at the tail because the workload isolation inside the container happens to reduce scheduling interference on this machine.
 
 ## Reproduction
 
