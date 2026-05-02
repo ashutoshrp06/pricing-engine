@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <algorithm>
 
 static int64_t now_ns() {
     return std::chrono::steady_clock::now().time_since_epoch().count();

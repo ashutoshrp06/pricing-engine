@@ -54,18 +54,18 @@ int main(int argc, char* argv[]) {
 
     auto snap = pe.inventory().snapshot();
     std::printf("\n--- Phase 3 Summary ---\n");
-    std::printf("Fill count (PE)  : %lld\n",  snap.fill_count);
-    std::printf("Fill count (LP)  : %lld\n",  pe.lt_to_lp_count());
+    std::printf("Fill count (PE)  : %ld\n",  snap.fill_count);
+    std::printf("Fill count (LP)  : %ld\n",  pe.lt_to_lp_count());
     std::printf("PE fill share    : %.1f%%\n",
         (snap.fill_count + pe.lt_to_lp_count()) > 0
         ? 100.0 * snap.fill_count / (snap.fill_count + pe.lt_to_lp_count())
         : 0.0);
-    std::printf("Hedge count      : %lld\n",  snap.hedge_count);
-    std::printf("Final position   : %lld\n",  snap.position);
-    std::printf("Realised PnL     : %lld pip-units\n", snap.realised_pnl);
-    std::printf("Unrealised PnL   : %lld pip-units\n", snap.unrealised_pnl);
+    std::printf("Hedge count      : %ld\n",  snap.hedge_count);
+    std::printf("Final position   : %ld\n",  snap.position);
+    std::printf("Realised PnL     : %ld pip-units\n", snap.realised_pnl);
+    std::printf("Unrealised PnL   : %ld pip-units\n", snap.unrealised_pnl);
     std::printf("Spread cap mean  : %.2f pip-units\n", snap.spread_capture_mean);
-    std::printf("Peak abs position: %lld\n", snap.position_peak_abs);
+    std::printf("Peak abs position: %ld\n", snap.position_peak_abs);
 
     return 0;
 }

@@ -3,10 +3,13 @@ import socket
 import threading
 import time
 from collections import deque
+import os
 
 
 class DataSource:
-    def __init__(self, host: str = "localhost", port: int = 8765):
+    def __init__(self,
+            host: str = os.environ.get("ENGINE_HOST", "localhost"),
+            port: int = int(os.environ.get("ENGINE_PORT", "8765"))):
         self.host = host
         self.port = port
         self._buffer: deque = deque(maxlen=1500)

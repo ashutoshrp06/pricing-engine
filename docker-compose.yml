@@ -1,0 +1,19 @@
+services:
+  engine:
+    build:
+      context: ./engine
+    platform: linux/amd64
+    ports:
+      - "${ENGINE_PORT:-8765}:8765"
+
+  dashboard:
+    build:
+      context: ./dashboard
+    platform: linux/amd64
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    depends_on:
+      - engine
+    environment:
+      - ENGINE_HOST=engine
+      - ENGINE_PORT=8765

@@ -3,6 +3,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from data_source import DataSource
 import streamlit.components.v1 as components
+import os
 
 st.set_page_config(
     page_title="Pricing Engine",
@@ -19,7 +20,9 @@ header[data-testid="stHeader"] { display: none; }
 
 @st.cache_resource
 def get_data_source() -> DataSource:
-    return DataSource(host="localhost", port=8765)
+    host = os.environ.get("ENGINE_HOST", "localhost")
+    port = int(os.environ.get("ENGINE_PORT", "8765"))
+    return DataSource(host=host, port=port)
 
 
 data_source = get_data_source()
