@@ -10,8 +10,8 @@ ConsolidatedBook::ConsolidatedBook()
 }
 
 void ConsolidatedBook::update_lp_quote(int lp_id, int64_t bid, int64_t ask) {
-    bids_[lp_id + 1] = bid;
-    asks_[lp_id + 1] = ask;
+    bids_[lp_id] = bid;
+    asks_[lp_id] = ask;
     rescan();
 }
 
