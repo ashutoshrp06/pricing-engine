@@ -42,6 +42,7 @@ def _make_line_fig(xs, ys_map: dict, title: str, y_label: str, log_y: bool = Fal
         font=dict(color="#e0e0e0", family="monospace"),
         margin=dict(l=40, r=20, t=40, b=40),
         legend=dict(bgcolor="#1a1d27"),
+        hovermode="x unified",
     )
     return fig
 
@@ -111,13 +112,13 @@ def update():
     chart_col1.plotly_chart(
         _make_line_fig(xs, {"PnL": pnl_vals}, "PnL over Time", "pips"),
         use_container_width=True,
-        config={"displayModeBar": False},
+        config={"displayModeBar": False, "dragmode": False},
         key="pnl_chart",
     )
     chart_col2.plotly_chart(
         _make_line_fig(xs, {"Position": pos_vals}, "Position over Time", "units"),
         use_container_width=True,
-        config={"displayModeBar": False},
+        config={"displayModeBar": False, "dragmode": False},
         key="pos_chart",
     )
 
@@ -133,13 +134,13 @@ def update():
             log_y=True,
         ),
         use_container_width=True,
-        config={"displayModeBar": False},
+        config={"displayModeBar": False, "dragmode": False},
         key="lat_chart",
     )
     fill_col.plotly_chart(
         _make_line_fig(xs, {"Fills": fill_vals}, "Cumulative Fill Count", "fills"),
         use_container_width=True,
-        config={"displayModeBar": False},
+        config={"displayModeBar": False, "dragmode": False},
         key="fill_chart",
     )
 

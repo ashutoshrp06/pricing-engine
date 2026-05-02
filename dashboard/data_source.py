@@ -31,6 +31,8 @@ class DataSource:
                         chunk = sock.recv(4096).decode("utf-8", errors="replace")
                         if not chunk:
                             break
+                        if len(buf) > 8192:
+                            break  # triggers reconnect via the outer except
                         buf += chunk
                         while "\n" in buf:
                             line, buf = buf.split("\n", 1)
