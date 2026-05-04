@@ -73,15 +73,18 @@ int main() {
     running = false;
     t_pe.join(); t_lp.join(); t_sg.join(); t_lt.join();
 
-    uint64_t total = 0;
-    for (auto v : per_sec_drained) total += v;
-    double sustained = static_cast<double>(total) / static_cast<double>(per_sec_drained.size());
+    //uint64_t total = 0;
+    constexpr size_t SKIP = 2;
+    auto begin = per_sec_drained.begin() + std::min(SKIP, per_sec_drained.size());
+    std::sort(begin, per_sec_drained.end());
+    size_t n = per_sec_drained.end() - begin;
+    double sustained = static_cast<double>(*(begin + n / 2));
 
     // Target: 12*1000 (LP) + 1000 (SG) + 1000 (LT) = 14000 events/sec
     std::printf(".  Throughput Benchmark  \n");
     std::printf("Duration          : %d s\n",          DURATION_S);
     std::printf("Target throughput : 14000 events/s\n");
-    std::printf("Sustained         : %.0f events/s\n", sustained);
+    std::printf("Sustained (median): %.0f events/s\n", sustained);
     std::printf("Peak (1s window)  : %llu events/s\n", (unsigned long long)max_drained);
 
     return 0;

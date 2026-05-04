@@ -63,4 +63,4 @@ def plot_metric(metric, ylabel, title, filename):
 
 plot_metric("pnl_total",          "Total PnL (pip-units)", "PnL versus Injected Latency",          "latency_pnl.png")
 plot_metric("fill_rate",          "Fill rate (fills/sec)", "Fill Rate versus Injected Latency",     "latency_fill_rate.png")
-plot_metric("position_std",       "Position std dev",      "Exposure versus Injected Latency",      "latency_exposure.png")
+plot_metric("position_std",       "Position std dev (units)",      "Exposure versus Injected Latency",      "latency_exposure.png")

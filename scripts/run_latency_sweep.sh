@@ -3,7 +3,7 @@ set -euo pipefail
 
 ENGINE=./engine/build/engine
 OUT=docs/latency_results.csv
-DURATION=30
+DURATION=60
 SEEDS=(42 43 44 45 46)
 LATENCIES=(100 500 1000 5000 10000)
 

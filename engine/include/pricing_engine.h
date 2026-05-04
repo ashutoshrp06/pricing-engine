@@ -88,7 +88,7 @@ private:
 
     LatencyBuffer<PeQuoteUpdate, 256> pe_delay_buf_;
 
-    static constexpr int LAT_BUF_SIZE = 2048;
+    static constexpr int LAT_BUF_SIZE = 16384;
     std::array<int64_t, LAT_BUF_SIZE> lat_buf_{};
     int lat_idx_ = 0;
     int lat_count_ = 0;

@@ -39,7 +39,7 @@ int main() {
     std::thread t_lt([&]{ lt.run(); });
     std::thread t_pe([&]{ pe.run(running); });
 
-    std::this_thread::sleep_for(std::chrono::seconds(60));
+    std::this_thread::sleep_for(std::chrono::seconds(120));
 
     running = false;
     t_pe.join(); t_lp.join(); t_sg.join(); t_lt.join();
@@ -53,13 +53,10 @@ int main() {
         s2   = pe.snapshot().seq.load(std::memory_order_acquire);
     } while (s1 != s2 || (s1 & 1));
 
-    // lat_count is not exposed directly; sample size approximated from
-    // events at default load: (12*500+100+50)*60 = 369000, sampled every
-    // N events. Actual sample size = lat_count_ capped at LAT_BUF_SIZE=2048.
-    int64_t sample_size = 2048;   // conservative: buf is full after approx. first second
+    int64_t sample_size = 16384;   // buffer fills in ~117s at 140 samples/sec
 
     std::printf("   Latency Benchmark    \n");
-    std::printf("Duration    : 60 s  (default load: 12 LP x 500 Hz, SG 100 Hz, LT 50 Hz)\n");
+    std::printf("Duration    : 120 s  (default load: 12 LP x 500 Hz, SG 100 Hz, LT 50 Hz)\n");
     std::printf("Sample size : ~%lld events\n", (long long)sample_size);
     std::printf("p50         : %lld ns\n",  (long long)snap.latency_p50_ns);
     std::printf("p99         : %lld ns\n",  (long long)snap.latency_p99_ns);

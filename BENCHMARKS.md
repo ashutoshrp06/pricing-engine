@@ -12,7 +12,7 @@
 | Optimisation flags | `-O3 -march=native` |
 | Docker | 29.2.1 |
 
-Both sets of numbers are included: native arm64 (bare metal) and inside the linux/amd64 Docker container under Rosetta. The Docker numbers are what one on an x86_64 Linux would see from a native build.
+Native arm64 numbers are the primary benchmark. Docker throughput is included for reference; Docker latency is not reported because Rosetta emulation dominates the measurement.
 
 ## Throughput
 
@@ -20,46 +20,48 @@ Both sets of numbers are included: native arm64 (bare metal) and inside the linu
 
 Target: 14,000 events/s (12,000 LP + 1,000 SG + 1,000 LT).
 
-| Metric | Native (M4) | Docker (linux/amd64) |
+| Metric | Native (M4) | Docker/Rosetta (linux/amd64) |
 |---|---|---|
-| Sustained throughput | 14,508 events/s | 14,139 events/s |
-| Peak throughput (1s window) | 14,695 events/s | 14,224 events/s |
+| Sustained throughput (median) | ~4,900 events/s | N/A |
+| Peak throughput (1s window) | 14,326 events/s | 9,977 events/s |
 | Queue overflow events | 0 | 0 |
 
-Engine sustains above-target throughput in both environments with no queue overflow. The ~2.5% drop in Docker is Rosetta overhead. In both cases the bottleneck is the producers, not the consumer. At default load (6,150 events/s), there is significant headroom before the consumer saturates.
+Peak throughput confirms the consumer can handle the target load when producers deliver at the configured rate. Sustained median is low on macOS because `sleep_for` resolves to 5-15ms on Darwin, so producers pace at ~100-200 Hz instead of 1000 Hz. Most 1-second buckets see ~4,900 events; burst seconds where timers fire accurately hit 14,300+. On Linux, `nanosleep` resolves at ~100us and sustained would track peak. Docker peak is lower because Rosetta adds emulation overhead. No queue overflow in either case.
 
 ## End-to-end Latency
 
-`engine/bench/bench_latency.cpp`. Default load, 60 seconds, all injected latencies at 0. Every event is stamped at production; the PE records a consumption timestamp after finishing that event. The delta is the end-to-end latency for that event. Stored in a 2,048-slot ring buffer.
+`engine/bench/bench_latency.cpp`. Default load, 120 seconds, all injected latencies at 0. Every event is stamped at production; the PE records a consumption timestamp after finishing that event. The delta is the end-to-end latency for that event. Stored in a 16,384-slot ring buffer.
 
 Percentiles explained: p50 is the median, half of events are faster than this. p99 means 99% of events completed within this time, 1% took longer. p99.9 covers all but the worst 0.1%.
 
-| Metric | Native (M4) | Docker (linux/amd64) |
-|---|---|---|
-| p50 | 208 ns | 167 ns |
-| p99 | ~3,000 ns* | 1,875 ns |
-| p99.9 | unstable* | 4,666 ns |
-| max | unstable* | 22,958 ns |
-| Sample size | ~2,048 | ~2,048 |
+| Metric | Native (M4) |
+|---|---|
+| p50 | 167-208 ns |
+| p99 | 375 ns - 7.7 us |
+| p99.9 | 20-47 us |
+| max | 39-190 us |
+| Sample size | ~16,384 |
 
-*Across 5 runs, p50 was stable (167-291 ns). p99 was sub-3.2us on 3 of 5 runs; the other two spiked to 100-145us. p99.9 ranged from 7.9us to 322us. This is OS scheduler preemption, not engine variance. macOS provides no real-time scheduling primitive equivalent to Linux's `chrt`. On a Linux host with `taskset` and `chrt -f`, the tail would tighten significantly. The p50 is the only stable number on this machine.
-
-p50 is the number that reflects the engine. The hot path is: SPSC drain, consolidated book update, pricing logic, inventory skew. That consistently comes out around 200 ns. Everything past p99 is the OS occasionally deciding something else matters more. Docker numbers are cleaner at the tail because the workload isolation inside the container happens to reduce scheduling interference on this machine.
+p50 is stable across all 10 runs. That is the actual hot-path cost: SPSC drain, consolidated book update, pricing logic, inventory skew. p99.9 and max swing run-to-run because macOS has no real-time scheduling equivalent to Linux `chrt`. The spikes are OS preemption, not engine regressions. Docker latency is not reported - under Rosetta, thread scheduling latency dominates at 1.2-1.4s per event, which is emulation overhead, not engine behaviour.
 
 ## Reproduction
+
+Native:
 
 ```bash
 cd engine
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/bench_throughput
 ./build/bench_latency
+./build/bench_throughput
 ```
 
-Inside Docker:
+Docker:
 
 ```bash
-docker compose build engine
-docker compose run --rm --entrypoint ./bench_throughput engine
-docker compose run --rm --entrypoint ./bench_latency engine
+docker compose run --rm --entrypoint /app/bench_latency engine
+docker compose run --rm --entrypoint /app/bench_throughput engine
 ```
+
+bench_latency: 12 LPs x 500 Hz, SG 100 Hz, LT 50 Hz, seed 42, zero injected latency, 120s.
+bench_throughput: 12 LPs x 1000 Hz, SG 1000 Hz, LT 1000 Hz, seed 42, zero injected latency, 60s.
