@@ -1,5 +1,9 @@
 # Design
 
+## Instrument
+
+The simulated instrument is a synthetic FX-like pair modelled on EUR/USD-style five-decimal pricing. Mid sits at 1.10000 (110000 internal pip-units), tick is 0.00001. All prices are `int64_t` throughout - no floats in the book, no floats in inventory. The architecture is instrument-agnostic; swap the constants and it prices anything.
+
 ## Pricing logic
 
 On every event (LP quote update, signal update, or LT fill), the PE runs `reprice()`. The formula:
@@ -26,7 +30,7 @@ All RNGs across producers are seeded deterministically from a single global seed
 
 ## Hedge logic
 
-When `|position| >= hedge_threshold`, PE crosses the spread to reduce exposure. It sells to the best bid LP when long, buys from the best ask LP when short. Hedge quantity targets a post-hedge residual of `hedge_threshold / 2`, not zero. This avoids immediately re-triggering the hedge and gives the quote skew room to finish the job through fills.
+When `|position| >= hedge_threshold`, PE crosses the spread to reduce exposure. It sells to the best bid LP when long, buys from the best ask LP when short. Hedge quantity targets a post-hedge residual of `hedge_threshold / 2`, not zero. This avoids immediately re-triggering the hedge. The remaining 30 units are left for the quote skew to flatten through fills, which earn spread rather than paying it.
 
 After every hedge, PE requotes immediately using the updated (post-hedge) position. Without this, the quote would reflect stale inventory for the next several events.
 
@@ -48,7 +52,7 @@ The hedge is a last-resort mechanism. With `beta=0.4`, a position of 60 units sh
 | `lt_arrival_hz` | 50 | LT order arrival rate |
 | `seed` | 42 | RNG seed for all producers |
 
-`alpha=0.1` keeps the directional component small. With a random-walk signal that has no predictive edge, large alpha means PE systematically buys above mid and sells below mid as the signal oscillates. At 0.1 tick per signal unit, the edge from spread capture dominates the noise from directional bets.
+`alpha=0.1` keeps the directional component small. With a random-walk signal that has no predictive edge, large alpha means PE systematically buys above mid and sells below mid as the signal oscillates. At 0.1 tick per signal unit, the directional term is at most ±0.1 ticks - intentionally small so spread capture dominates PnL rather than signal noise.
 
 `beta=0.4` was tuned empirically. Too low and inventory runs to the hedge threshold frequently, paying spread on every hedge. Too high and the quote skew pushes PE's prices so far from LP consensus that LTs stop hitting PE entirely. At 0.4, inventory typically self-corrects in 5 to 15 fill events.
 
@@ -58,7 +62,7 @@ All parameters are configurable via CLI. None are hardcoded in the logic.
 
 ## Signal generator
 
-The signal is a pure random walk in [-1, 1] with reflection at the boundaries. It has no correlation with future mid movements.
+The signal is a pure random walk in [-1, 1], clamped at ±1. Missing FX instrument paragraph - add after the Parameters table: It has no correlation with future mid movements.
 
 The brief notes that some correlation would be elegant but is not required. I deliberately left it out. The latency study measures how strategy behaviour degrades as wire delays increase. That measurement does not require the strategy to be profitable in absolute terms - it requires the direction of degradation to be detectable. A random signal produces that. Tuning a correlation coefficient that is predictive enough to produce a visible edge but not so strong it dominates the variance is a separate calibration problem, and one the brief explicitly says is not evaluated.
 

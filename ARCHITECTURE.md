@@ -43,7 +43,7 @@ Single C++ process, five threads. Three producer threads push events into three 
 
 This is one thread, not 12. Real feed handlers work the same way: one thread receives market data for many sources and dispatches sequentially. Thread-per-LP would break the SPSC single-producer invariant or require 12 separate queues. The PE sees quotes tagged with 12 distinct `lp_id` values and the consolidated book keeps 12 independent bid/ask slots, so nothing is lost at the data level.
 
-**Signal generator thread.** Random walk in [-1, 1] with reflection at boundaries. Emits `SignalUpdate` events at the configured frequency (default 100 Hz).
+**Signal generator thread.** Random walk in [-1, 1], clamped at ±1. Emits `SignalUpdate` events at the configured frequency (default 100 Hz).
 
 **Liquidity taker thread.** Poisson-arrival market order generator. Emits `LtOrder` events with side and size only. It does not touch the book; the PE does the matching when it dequeues the event.
 
@@ -57,7 +57,7 @@ Three queues: one per producer thread. Each is a cache-line aligned ring buffer 
 
 Three SPSC queues instead of one MPSC because SPSC is simpler: one producer owns the write end, one consumer owns the read end, no coordination needed. MPSC needs either a lock or a more complex lock-free scheme to handle concurrent pushes. With only three producers that complexity buys nothing. The PE drains all three in the same round-robin loop it would use for one.
 
-At default load (12 LPs at 500 Hz = 6000 events/s, SG at 100 Hz, LT at 50 Hz), aggregate input is roughly 6150 events/s. The PE drains at full CPU speed so queues stay near-empty under normal load. 4096 slots gives roughly 650ms of headroom if the consumer stalls, enough to absorb any OS scheduling hiccup without overflow, and small enough that the full ring fits comfortably in L2 cache.
+At default load (12 LPs at 500 Hz = 6000 events/s, SG at 100 Hz, LT at 50 Hz), aggregate input is roughly 6150 events/s. The PE drains at full CPU speed so queues stay near-empty under normal load. 4096 slots gives roughly 650ms of headroom on the LP queue (6000 events/s) if the consumer stalls; the SG and LT queues have proportionally more (40s and 81s respectively). Small enough that the full ring fits comfortably in L2 cache.
 
 The engine is a single process. Multi-process would require shared memory or a socket for the consolidated book, complicate latency measurement (inter-process latency mixes with intra-engine latency), and add surface area to the Docker setup. Five threads and three SPSC queues is simple to reason about. Multi-process adds no benefit at this scale.
 
@@ -105,7 +105,7 @@ The PE writes via a seqlock: increment a counter (odd = write in progress), writ
 
 The publisher listens on localhost:8765 and writes one JSON object per line at 5 Hz. On client disconnect it accepts the next connection. No buffering; drops are silent.
 
-TCP NDJSON over shared memory or a Unix socket because it is debuggable with `nc localhost 8765`, needs no shared volume in Docker, and keeps engine and dashboard fully decoupled. Throttling is on the engine side; the dashboard cannot overload the engine regardless of how often it polls.
+TCP NDJSON over shared memory or a Unix socket because it is debuggable with `nc localhost 8765`, needs no shared volume in Docker, and keeps engine and dashboard fully decoupled. Throttling is on the engine side; the dashboard cannot overload the engine regardless of how often it polls. Prices in the snapshot are raw pip-unit integers; the dashboard converts to decimal on display via `price / 100000.0`.
 
 ## Docker
 

@@ -31,7 +31,7 @@ run_engine() {
     pos_std=$(echo "$output"     | grep "Position std"      | awk '{print $4}')
     pos_max=$(echo "$output"     | grep "Peak abs position" | awk '{print $5}')
     hedge=$(echo "$output"       | grep "Hedge count"       | awk '{print $4}')
-    lat_p99=$(echo "$output"     | grep "Latency p99"       | awk '{print $4}')
+    lat_p99=$(echo "$output"     | grep "Latency p99"       | awk '{print $5}')
 
     local pnl_total fill_rate
     pnl_total=$(echo "$pnl_r $pnl_u" | awk '{printf "%.4f", $1 + $2}')

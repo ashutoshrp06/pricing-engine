@@ -18,27 +18,26 @@ To stop: `Ctrl+C`, then `docker compose down`.
 
 ## What it does
 
-The engine runs 12 logical LPs quoting at 500 Hz each (6,000 quote updates/sec aggregate), a signal generator producing a directional signal at 100 Hz, and a liquidity taker placing Poisson-arrival market orders at 50 Hz. The pricing engine consumes all three streams, maintains a consolidated top-of-book across all 12 LPs plus itself, quotes competitively to capture LT flow, skews its mid based on inventory, and hedges when exposure crosses a threshold.
+The simulated instrument is a synthetic FX-like pair (mid ~1.10000, tick 0.00001), modelled on EUR/USD-style five-decimal pricing. The engine runs 12 logical LPs configured to quote at 500 Hz each (6,000 quote updates/sec target; timer resolution caveats in BENCHMARKS.md), a signal generator producing a directional signal at 100 Hz, and a liquidity taker placing Poisson-arrival market orders at 50 Hz. The pricing engine consumes all three streams, maintains a consolidated top-of-book across all 12 LPs plus itself, quotes competitively to capture LT flow, skews its mid based on inventory, and hedges when exposure crosses a threshold.
 
 The dashboard shows live PnL, position, fill rate, spread capture, latency percentiles, and the current consolidated book state. It refreshes at 5 Hz and stays stable for extended runs.
 
-## Performance
+### Performance
 
-All numbers from a 60-second run at default load (6,150 events/sec).
+Numbers from native M4 bare metal. See [BENCHMARKS.md](BENCHMARKS.md) for full methodology and Docker numbers.
 
-| | Native (M4) | Docker (linux/amd64) |
-|---|---|---|
-| Sustained throughput | 14,511 ev/s | 14,139 ev/s |
-| Peak throughput | 14,672 ev/s | 14,224 ev/s |
-| Latency p50 | 167 ns | 167 ns |
-| Latency p99 | 375 ns | 1,875 ns |
-| Latency p99.9 | 3,125 ns | 4,666 ns |
+| Metric | Native (M4) |
+|---|---|
+| Peak throughput (1s window) | 14,326 events/s |
+| Latency p50 | 167-208 ns |
+| Latency p99 | 375 ns - 7.7 us |
+| Latency p99.9 | 20-47 us (OS scheduler noise on macOS) |
 
-End-to-end latency is from event production timestamp to PE decision. p50 at 167 ns in both environments. The p99 gap between native and Docker is emulation overhead on the x86_64 translation layer (built on Apple M4).
+End-to-end latency is from event production timestamp to PE decision. p50 is stable across runs and reflects the actual hot-path cost. p99.9 swings run-to-run due to macOS scheduler preemption; on Linux with `chrt` the tail tightens. Docker latency is not reported as Rosetta emulation dominates the measurement at 1.2-1.4s per event.
 
 ## Latency study
 
-PE-to-book is the dominant latency link. PnL falls from ~700 to ~100 pip-units as PE-to-book delay increases from 0 to 10ms. Stale quote updates stay live in the book longer, LTs hit them adversely, and spread capture collapses. LP-to-PE latency shows a counterintuitive PnL rise, which is a simulation artifact: the LT has no adverse selection logic, so stale LP quotes do not hurt PE. LT-to-PE shows no clear trend. Full methodology, plots, and discussion in [LATENCY_STUDY.md](LATENCY_STUDY.md).
+PE-to-book is the dominant latency link. PnL falls from ~1500 to ~390 pip-units as PE-to-book delay increases from 0 to 10ms. Stale quote updates stay live in the book longer, LTs hit them adversely, and spread capture collapses. LP-to-PE latency shows a counterintuitive PnL rise, which is a simulation artifact: the LT has no adverse selection logic, so stale LP quotes do not hurt PE. LT-to-PE shows no clear trend. Full methodology, plots, and discussion in [LATENCY_STUDY.md](LATENCY_STUDY.md).
 
 ## Configuration
 
@@ -70,7 +69,7 @@ To run the engine directly (outside Docker) with custom latency:
 To re-run the latency sweep or regenerate plots, the scripts need `pandas` and `matplotlib`:
 
 ```bash
-pip install pandas==2.3.3 matplotlib==3.10.1
+pip install pandas matplotlib
 bash scripts/run_latency_sweep.sh
 python3 scripts/plot_latency_results.py
 ```
@@ -97,7 +96,6 @@ engine/          C++17 pricing engine
   src/           source files
   include/       headers
   bench/         throughput and latency benchmarks
-  tests/         unit tests
 dashboard/       Streamlit dashboard
 scripts/         latency sweep and plot scripts
 docs/            plots, CSV results, diagrams

@@ -2,7 +2,6 @@ import time
 import streamlit as st # type: ignore
 import plotly.graph_objects as go # type: ignore
 from data_source import DataSource
-import streamlit.components.v1 as components # type: ignore
 import os
 
 st.set_page_config(
@@ -27,6 +26,8 @@ def get_data_source() -> DataSource:
 
 data_source = get_data_source()
 
+st.title("Pricing Engine")
+st.caption("Synthetic FX-like instrument · mid ~1.10000 · tick 0.00001")
 
 def _make_line_fig(xs, ys_map: dict, title: str, y_label: str, log_y: bool = False) -> go.Figure:
     fig = go.Figure()
@@ -37,6 +38,7 @@ def _make_line_fig(xs, ys_map: dict, title: str, y_label: str, log_y: bool = Fal
         xaxis_title="Time (s)",
         yaxis_title=y_label,
         yaxis_type="log" if log_y else "linear",
+        yaxis=dict(range=[-1, 5], autorange=False) if log_y else {},
         paper_bgcolor="#0e1117",
         plot_bgcolor="#1a1d27",
         font=dict(color="#e0e0e0", family="monospace"),
@@ -106,7 +108,7 @@ def update():
         p50_vals.append(s.get("latency_p50_ns", 0) / 1000.0)
         p99_vals.append(s.get("latency_p99_ns", 0) / 1000.0)
         p999_vals.append(s.get("latency_p99_9_ns", 0) / 1000.0)
-        fill_vals.append(s.get("fill_count", 0))
+        fill_vals.append(s.get("fill_rate_per_sec", 0))
 
     chart_col1, chart_col2 = st.columns(2)
     chart_col1.plotly_chart(
@@ -138,7 +140,7 @@ def update():
         key="lat_chart",
     )
     fill_col.plotly_chart(
-        _make_line_fig(xs, {"Fills": fill_vals}, "Cumulative Fill Count", "fills"),
+        _make_line_fig(xs, {"Fill rate": fill_vals}, "Fill Rate over Time", "fills/sec"),
         use_container_width=True,
         config={"displayModeBar": False, "dragmode": False},
         key="fill_chart",
@@ -146,25 +148,15 @@ def update():
 
     st.divider()
 
+    def _fmt(p: int) -> str:
+        return f"{p / 100000.0:.5f}" if p else "—"
+
     mid = latest.get("mid_price", 0)
     st.table({
         "Participant": ["PE", "Best Bid LP", "Best Ask LP"],
-        "Bid":         [str(latest.get("pe_bid", 0)), str(latest.get("best_bid", 0)), "—"],
-        "Ask":         [str(latest.get("pe_ask", 0)), "—", str(latest.get("best_ask", 0))],
-        "Mid":         [str(mid), str(mid), str(mid)],
+        "Bid":         [_fmt(latest.get("pe_bid", 0)), _fmt(latest.get("best_bid", 0)), "—"],
+        "Ask":         [_fmt(latest.get("pe_ask", 0)), "—", _fmt(latest.get("best_ask", 0))],
+        "Mid":         [_fmt(mid), _fmt(mid), _fmt(mid)],
     })
-
-components.html("""
-<script>
-    const p = window.parent;
-    if (!p._scrollLocked) {
-        p.document.addEventListener('scroll', () => { p._savedScroll = p.scrollY; });
-        p._scrollLocked = true;
-    }
-    setInterval(() => {
-        if (p._savedScroll !== undefined) p.scrollTo(0, p._savedScroll);
-    }, 200);
-</script>
-""", height=0)
 
 update()
