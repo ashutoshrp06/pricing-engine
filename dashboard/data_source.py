@@ -32,7 +32,8 @@ class DataSource:
                         if not chunk:
                             break
                         if len(buf) > 8192:
-                            break  # triggers reconnect via the outer except
+                            # Malformed stream (no newline in 8KB). Reconnect.
+                            raise OSError("buffer overflow without newline")
                         buf += chunk
                         while "\n" in buf:
                             line, buf = buf.split("\n", 1)

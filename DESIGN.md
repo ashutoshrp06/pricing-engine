@@ -62,7 +62,7 @@ All parameters are configurable via CLI. None are hardcoded in the logic.
 
 ## Signal generator
 
-The signal is a pure random walk in [-1, 1], clamped at ±1. Missing FX instrument paragraph - add after the Parameters table: It has no correlation with future mid movements.
+The signal is a pure random walk in [-1, 1], clamped at ±1. It has no correlation with future mid movements.
 
 The brief notes that some correlation would be elegant but is not required. I deliberately left it out. The latency study measures how strategy behaviour degrades as wire delays increase. That measurement does not require the strategy to be profitable in absolute terms - it requires the direction of degradation to be detectable. A random signal produces that. Tuning a correlation coefficient that is predictive enough to produce a visible edge but not so strong it dominates the variance is a separate calibration problem, and one the brief explicitly says is not evaluated.
 

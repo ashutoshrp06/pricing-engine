@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     pe_thread.join();
 
     auto snap = pe.inventory().snapshot();
-    std::printf("\n--- Phase 3 Summary ---\n");
+    std::printf("\n--- Run Summary ---\n");
     std::printf("Fill count (PE)  : %lld\n",  (long long)snap.fill_count);
     std::printf("Fill count (LP)  : %lld\n",  (long long)pe.lt_to_lp_count());
     std::printf("PE fill share    : %.1f%%\n",

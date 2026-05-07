@@ -33,9 +33,8 @@ void SignalGenerator::run() {
         int64_t t = now_ns();
         if (t < next_ns) continue;
 
-        // Random walk with reflection at [-1, 1]
         value += step_dist(rng);
-        // clamp instead of reflect -- simpler, same statistical property for our use
+        // Clamp at [-1, 1]. Reflection would be more symmetric statistically but the difference is invisible at the scales used here.
         if (value >  1.0) value =  1.0;
         if (value < -1.0) value = -1.0;
 

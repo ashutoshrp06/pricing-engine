@@ -81,7 +81,7 @@ int main() {
     double sustained = static_cast<double>(*(begin + n / 2));
 
     // Target: 12*1000 (LP) + 1000 (SG) + 1000 (LT) = 14000 events/sec
-    std::printf(".  Throughput Benchmark  \n");
+    std::printf("  Throughput Benchmark  \n");
     std::printf("Duration          : %d s\n",          DURATION_S);
     std::printf("Target throughput : 14000 events/s\n");
     std::printf("Sustained (median): %.0f events/s\n", sustained);
