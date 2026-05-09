@@ -38,7 +38,6 @@ def _make_line_fig(xs, ys_map: dict, title: str, y_label: str, log_y: bool = Fal
         xaxis_title="Time (s)",
         yaxis_title=y_label,
         yaxis_type="log" if log_y else "linear",
-        yaxis=dict(range=[-1, 5], autorange=False) if log_y else {},
         paper_bgcolor="#0e1117",
         plot_bgcolor="#1a1d27",
         font=dict(color="#e0e0e0", family="monospace"),

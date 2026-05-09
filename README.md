@@ -16,6 +16,27 @@ Open http://localhost:8501 in your browser. The dashboard should be live within 
 
 To stop: `Ctrl+C`, then `docker compose down`.
 
+## Native build (Linux / macOS)
+
+Requires cmake 3.15+, gcc 13+, and Python 3.12+. See your OS package manager for installation.
+
+**Terminal 1:**
+```bash
+cd engine
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/engine
+```
+
+**Terminal 2:**
+```bash
+cd dashboard
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Open http://localhost:8501.
+
 ## What it does
 
 The simulated instrument is a synthetic FX-like pair (mid ~1.10000, tick 0.00001), modelled on EUR/USD-style five-decimal pricing. The engine runs 12 logical LPs configured to quote at 500 Hz each (6,000 quote updates/sec target; timer resolution caveats in BENCHMARKS.md), a signal generator producing a directional signal at 100 Hz, and a liquidity taker placing Poisson-arrival market orders at 50 Hz. The pricing engine consumes all three streams, maintains a consolidated top-of-book across all 12 LPs plus itself, quotes competitively to capture LT flow, skews its mid based on inventory, and hedges when exposure crosses a threshold.
