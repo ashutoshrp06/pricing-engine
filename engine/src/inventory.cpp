@@ -115,12 +115,13 @@ InventorySnapshot Inventory::snapshot() const {
     s.unrealised_pnl     = unrealised_pnl_;
     s.fill_count         = fill_count_;
     s.hedge_count        = hedge_count_;
+    // Reference timestamp is the most recent fill, not now_ns().
+    // At 30+ fills/sec this is within 30ms of wall time and only diverges during quiet periods.
     s.fill_rate_per_sec  = compute_fill_rate(
         fill_ts_count_ > 0 ? fill_ts_[fill_ts_head_ == 0
             ? FILL_LOG_CAPACITY - 1 : fill_ts_head_ - 1] : 0);
     s.spread_capture_mean = fill_count_ > 0
-        ? static_cast<double>(spread_capture_sum_) / fill_count_
-        : 0.0;
+        ? static_cast<double>(spread_capture_sum_) / fill_count_ : 0.0;
     s.mid_at_last_fill   = mid_at_last_fill_;
     s.position_peak_abs = position_peak_abs_;
     return s;

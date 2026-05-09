@@ -111,4 +111,4 @@ docs/            plots, CSV results, diagrams
 
 ## Related work
 
-The SPSC queue and order memory pool are adapted from [lob-simulator-optimized](https://github.com/ashutoshrp06/lob-simulator-optimized) (32.9 ns add latency, 6.4 ns SPSC enqueue). The consolidated book is a new top-of-book aggregator, not a matching engine. The feed handler pattern (one thread driving multiple logical LPs) is informed by [feed-parser](https://github.com/ashutoshrp06/feed-parser).
+The SPSC queue is adapted from [lob-simulator-optimized](https://github.com/ashutoshrp06/lob-simulator-optimized) (32.9 ns add latency, 6.4 ns SPSC enqueue). The consolidated book is a new top-of-book aggregator, not a matching engine. The feed handler pattern (one thread driving multiple logical LPs) is informed by [feed-parser](https://github.com/ashutoshrp06/feed-parser).

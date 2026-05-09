@@ -21,6 +21,7 @@ Before running the sweep:
 ## Methodology
 
 105 runs across five sets: baseline (all latencies at 0), LP-to-PE only, LT-to-PE only, PE-to-book only, all three combined. Latency values: 0, 100, 500, 1000, 5000, 10000 us. Each cell ran 5 times with seeds 42-46, 60 seconds per run. Lines in the plots show mean across seeds; shaded bands show min to max. Only latency varies between runs.
+Hedges did not trigger in any run at default parameters (hedge_threshold=60, beta=0.4). The exposure analysis reflects quote-skew dynamics only.
 
 ## Results
 
@@ -47,10 +48,10 @@ LT-to-PE shows a weak downward drift at high latency but the seed variance is la
 The most robust result in the study. Stale PE quotes stay visible after PE would have pulled or repriced them. The LT hits them. PnL falls from 1447 to 431 pip-units across the tested range, monotonically. This is the stale-quote problem in market making and it shows up clearly.
 
 **Prediction 4 (fill rate direction ambiguous): correct.** 
-Fill rate is flat. The effects of stale quotes attracting extra fills and delayed hedge orders missing fills cancel out at these latency scales.
+Fill rate is flat; and is insensitive because stale quotes attract slightly more fills while PE's wider effective spread from delayed repricing slightly reduces LT hits. These effects cancel at these latency scales.
 
 **Prediction 5 (exposure rises on every link): wrong for two of three links.**
-PE-to-book raised exposure as predicted, clearly and monotonically above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.14 at 500us, then more sharply to 6.21 at 1ms, 6.67 at 5ms, and 7.13 at 10ms. The hedge logic fires on inventory sampled inside the PE thread; LP and LT latency delays the inputs to that logic but not the hedge delivery itself, which explains why only the PE-to-book link, which delays the hedge order landing in the book, actually raises exposure.
+PE-to-book raised exposure as predicted, clearly and monotonically above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.14 at 500us, then more sharply to 6.21 at 1ms, 6.67 at 5ms, and 7.13 at 10ms. Hedges did not trigger in any of the 105 runs at default parameters - beta=0.4 keeps inventory self-correcting well below the 60-unit threshold through quote skew alone. The exposure rise under PE-to-book latency is therefore driven by quote-skew breakdown: stale PE quotes remain best for longer, attract one-sided LT flow before the skew can adjust, and accumulate position. LP-to-PE and LT-to-PE latency don't have this effect because they don't change how long PE's quote sits visible in the book.
 
 The main result: PE-to-book latency is the most damaging link in this simulation. Quote update latency to the venue is the primary latency risk in any market-making system, and this study reproduces that.
 
