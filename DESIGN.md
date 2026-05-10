@@ -72,9 +72,9 @@ With a pure random signal, expected PnL at zero latency is near zero in the long
 
 The LP price model is a random walk. Real LPs model their own inventory and adjust quotes accordingly. The simulation does not. This is fine because LP behaviour is not what this simulation is measuring. 
 
-Each LP's mid is clamped to ±15 pips of the initial value. Without the clamp, twelve independent random walks drift apart over a long run and the consolidated book eventually crosses (best bid above best ask), at which point matching against it stops being meaningful.
+Each LP's mid is clamped to ±3 pips of the initial value. Without the clamp, twelve independent random walks drift apart over a long run and the consolidated book eventually crosses (best bid above best ask), at which point matching against it stops being meaningful.
 
-LP half-spreads are 2 to 4 pip units. PE's half-spread is 1 to 2. This is deliberate. PE has to be best on price often enough to win fills, and LP spreads have to leave PE room to undercut. With LPs as tight as PE, PE would rarely have the book and the latency study would have nothing to measure.
+LP half-spreads are 5 to 7 pip units. PE's half-spread is 1 to 2. This is deliberate. PE has to be best on price often enough to win fills, and LP spreads have to leave PE room to undercut. With LPs as tight as PE, PE would rarely have the book and the latency study would have nothing to measure.
 
 The LT order model is Poisson arrivals with random side and fixed size. Real LT flow is correlated, time-of-day dependent, and size-varying. None of that matters for the scalability and latency measurements this engine is built to demonstrate.
 

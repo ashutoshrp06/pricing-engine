@@ -19,7 +19,7 @@ struct Config {
     double   alpha                 = 0.1;    // ticks per signal unit
     double   beta                  = 0.4;    // ticks per inventory unit
     int      base_spread           = 1;      // ticks
-    int      hedge_threshold       = 60;    // inventory units, was 20
+    int      hedge_threshold       = 60;    // inventory units
 
     int      lp_to_pe_latency_us   = 0;
     int      lt_to_pe_latency_us   = 0;
