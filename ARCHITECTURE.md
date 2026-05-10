@@ -2,7 +2,7 @@
 
 ## Overview
 
-Single C++ process, five threads. Three producer threads push events into three SPSC queues. The PE consumer thread drains all three, maintains the consolidated book, runs pricing and hedge logic, and writes a metrics snapshot. A fifth thread reads that snapshot and publishes it over TCP at 5 Hz. The Streamlit dashboard connects to that port and renders the live view.
+Single C++ process, five threads. Three producer threads push events into three SPSC queues. The PE consumer thread drains all three, maintains the consolidated book, runs pricing and hedge logic, and writes a metrics snapshot. A fifth thread reads that snapshot and publishes it over TCP at 5 Hz. The Streamlit dashboard connects to that port and renders the live view. Each shape choice (thread count, queue topology, single-process model, IPC mechanism) is defended in the section that introduces it.
 
 ```
 ┌──────────────────────────────────────────┐

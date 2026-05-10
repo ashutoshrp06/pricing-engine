@@ -56,6 +56,20 @@ Numbers from native M4 bare metal. See [BENCHMARKS.md](BENCHMARKS.md) for full m
 
 End-to-end latency is from event production timestamp to PE decision. p50 is stable across runs and reflects the actual hot-path cost. p99.9 swings run-to-run due to macOS scheduler preemption; on Linux with `chrt` the tail tightens. Docker latency is not reported as Rosetta emulation dominates the measurement at 1.2-1.4s per event.
 
+## Design choices
+
+A handful of choices that affect what the system can and cannot tell you. Each is defended in the linked doc.
+
+- PE-as-quoter. PE is a participant in the consolidated book alongside the 12 LPs, quoting competitively to capture LT flow. The threading model and the consolidated book design follow from this. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
+- Signal has no predictive content. Pure random walk in [-1, 1] with no correlation to future mid moves. A correlated signal would mix two effects in the latency study: edge erosion under stale data and stale-quote losses. With a random signal, expected zero-latency PnL is path variance only and the latency effect is separable from any strategy edge. Defended in [DESIGN.md](DESIGN.md).
+
+- LT has no adverse-selection logic. Side chosen uniformly at random; the LT does not compare PE's quote against LP consensus or preferentially hit stale quotes. This is the largest gap between this simulation and real market behaviour and is why the LP-to-PE PnL prediction did not hold. Discussed in [LATENCY_STUDY.md](LATENCY_STUDY.md).
+
+- Three latency-injection points, not four. LP-to-PE, LT-to-PE, PE-to-book. The signal-to-PE link is intentionally not injected because the signal is in-process. A fourth axis would be added if the signal came from a remote feed.
+
+- Strategy parameters are hand-tuned, not optimised. `alpha`, `beta`, and `hedge_threshold` were picked by observation rather than calibrated against an objective. The strategy works well enough to exercise the simulation under latency stress, which is what the experiment needs.
+
 ## Latency study
 
 PE-to-book is the dominant latency link. PnL falls from ~1450 to ~430 pip-units as PE-to-book delay increases from 0 to 10ms. Stale quote updates stay live in the book longer, LTs hit them adversely, and spread capture collapses. LP-to-PE latency shows a counterintuitive PnL rise, which is a simulation artifact: the LT has no adverse selection logic, so stale LP quotes do not hurt PE. LT-to-PE shows no clear trend. Full methodology, plots, and discussion in [LATENCY_STUDY.md](LATENCY_STUDY.md).

@@ -21,6 +21,7 @@ Before running the sweep:
 ## Methodology
 
 105 runs across five sets: baseline (all latencies at 0), LP-to-PE only, LT-to-PE only, PE-to-book only, all three combined. Latency values: 0, 100, 500, 1000, 5000, 10000 us. Each cell ran 5 times with seeds 42-46, 60 seconds per run. Lines in the plots show mean across seeds; shaded bands show min to max. Only latency varies between runs.
+
 Hedges did not trigger in any run at default parameters (hedge_threshold=60, beta=0.4). The exposure analysis reflects quote-skew dynamics only.
 
 ## Results
@@ -68,3 +69,5 @@ The main result: PE-to-book latency is the most damaging link in this simulation
 ## Future Work
 
 The current model applies one constant latency per link, shared across all LPs. A more realistic model would assign heterogeneous per-LP latency profiles (LP1 at 50us, LP2 at 2ms) to study how PE behaves when some feeds are fresh and others are stale. This was scoped as a third-tier feature and not built for this submission.
+
+A second extension is to model PE-to-LP wire latency for outbound hedge orders as a fourth injection point. The current engine routes hedges through the same PE-to-book delay buffer as quote updates, which collapses two distinct production paths into one parameter. Splitting them would let the study separate quote-staleness cost from hedge-delivery cost.

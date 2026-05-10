@@ -30,7 +30,7 @@ All RNGs across producers are seeded deterministically from a single global seed
 
 ## Hedge logic
 
-When `|position| >= hedge_threshold`, PE crosses the spread to reduce exposure. It sells to the best bid LP when long, buys from the best ask LP when short. Hedge quantity targets a post-hedge residual of `hedge_threshold / 2`, not zero. This avoids immediately re-triggering the hedge. The remaining 30 units are left for the quote skew to flatten through fills, which earn spread rather than paying it.
+When `|position| >= hedge_threshold`, PE crosses the spread to reduce exposure. It sells to the best bid LP when long, buys from the best ask LP when short. Hedge quantity targets a post-hedge residual of `hedge_threshold / 2`, not zero. This avoids immediately re-triggering the hedge. The remaining `hedge_threshold / 2` units are left for the quote skew to flatten through fills, which earn spread rather than paying it.
 
 After every hedge, PE requotes immediately using the updated (post-hedge) position. Without this, the quote would reflect stale inventory for the next several events.
 
@@ -64,15 +64,19 @@ All parameters are configurable via CLI. None are hardcoded in the logic.
 
 The signal is a pure random walk in [-1, 1], clamped at ±1. It has no correlation with future mid movements.
 
-The brief notes that some correlation would be elegant but is not required. I deliberately left it out. The latency study measures how strategy behaviour degrades as wire delays increase. That measurement does not require the strategy to be profitable in absolute terms - it requires the direction of degradation to be detectable. A random signal produces that. Tuning a correlation coefficient that is predictive enough to produce a visible edge but not so strong it dominates the variance is a separate calibration problem, and one the brief explicitly says is not evaluated.
+A correlated signal is plausible but I deliberately left it out. The latency study measures how strategy behaviour degrades as wire delays increase. That measurement does not require the strategy to be profitable in absolute terms - it requires the direction of degradation to be detectable. A random signal produces that. Tuning a correlation coefficient that is predictive enough to produce a visible edge but not so strong it dominates the variance is a separate calibration problem, and one outside the scope of this work.
 
 With a pure random signal, expected PnL at zero latency is near zero in the long run. Single 60-second runs produce small positive or negative PnL from path-dependent variance. The latency study then examines how the PnL distribution shifts under injected delay, not how much edge is preserved. Both are valid framings. The random-walk version is simpler to defend and requires no tuning.
 
 ## What is intentionally simple
 
-The LP price model is a random walk. Real LPs model their own inventory and adjust quotes accordingly. The simulation does not. This is fine because LP behaviour is explicitly not evaluated.
+The LP price model is a random walk. Real LPs model their own inventory and adjust quotes accordingly. The simulation does not. This is fine because LP behaviour is not what this simulation is measuring. 
 
-The LT order model is Poisson arrivals with random side and fixed size. Real LT flow is correlated, time-of-day dependent, and size-varying. None of that matters for the scalability and latency measurements the submission is evaluated on.
+Each LP's mid is clamped to ±15 pips of the initial value. Without the clamp, twelve independent random walks drift apart over a long run and the consolidated book eventually crosses (best bid above best ask), at which point matching against it stops being meaningful.
+
+LP half-spreads are 2 to 4 pip units. PE's half-spread is 1 to 2. This is deliberate. PE has to be best on price often enough to win fills, and LP spreads have to leave PE room to undercut. With LPs as tight as PE, PE would rarely have the book and the latency study would have nothing to measure.
+
+The LT order model is Poisson arrivals with random side and fixed size. Real LT flow is correlated, time-of-day dependent, and size-varying. None of that matters for the scalability and latency measurements this engine is built to demonstrate.
 
 The matching model uses a uniform-random tiebreak when PE is tied at best with LPs. Real venues use price-time priority or pro-rata. The tiebreak is documented in ARCHITECTURE.md. It does not advantage or disadvantage PE in expectation.
 
