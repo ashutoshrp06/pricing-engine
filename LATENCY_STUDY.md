@@ -32,7 +32,7 @@ PE-to-book is the only link with a clear PnL signal. PnL sits at 1511 pip-units 
 
 ![Fill Rate versus Injected Latency](docs/latency_fill_rate.png)
 
-Fill rate is flat across all runs and all links. The full range is 31.2 to 31.9 fills/sec. PE-to-book and combined show a marginal drop at 10ms (31.31 and 31.17 respectively) but it is within seed variance. No link moves fill rate meaningfully.
+Fill rate is flat across all runs and all links. The full range is 30.3 to 32.7 fills/sec. PE-to-book and combined show a marginal drop at 10ms (31.31 and 31.17 respectively) but it is within seed variance. No link moves fill rate meaningfully.
 
 ![Exposure versus Injected Latency](docs/latency_exposure.png)
 
