@@ -9,7 +9,7 @@ LATENCIES=(100 500 1000 5000 10000)
 
 mkdir -p docs
 
-echo "run_id,lp_to_pe_latency_us,lt_to_pe_latency_us,pe_to_book_latency_us,run_set,seed,duration_s,pnl_realised,pnl_unrealised,pnl_total,fill_rate,fill_count,spread_capture_mean,position_std,position_max_abs,hedge_count,latency_p99_ns" > "$OUT"
+echo "run_id,lp_to_pe_latency_us,lt_to_pe_latency_us,pe_to_book_latency_us,run_set,seed,duration_s,pnl_realised,pnl_unrealised,pnl_total,fill_rate,fill_count,spread_capture_mean,position_std,hedge_count,latency_p99_ns" > "$OUT"
 
 run_id=0
 
@@ -23,13 +23,12 @@ run_engine() {
         --seed "$seed" \
         --duration "$DURATION" 2>/dev/null)
 
-    local pnl_r pnl_u fill_count spread_mean pos_std pos_max hedge lat_p99
+    local pnl_r pnl_u fill_count spread_mean pos_std hedge lat_p99
     pnl_r=$(echo "$output"       | grep "Realised PnL"      | awk '{print $4}')
     pnl_u=$(echo "$output"       | grep "Unrealised PnL"    | awk '{print $4}')
     fill_count=$(echo "$output"  | grep "Fill count (PE)"   | awk '{print $5}')
     spread_mean=$(echo "$output" | grep "Spread cap mean"   | awk '{print $5}')
     pos_std=$(echo "$output"     | grep "Position std"      | awk '{print $4}')
-    pos_max=$(echo "$output"     | grep "Peak abs position" | awk '{print $5}')
     hedge=$(echo "$output"       | grep "Hedge count"       | awk '{print $4}')
     lat_p99=$(echo "$output"     | grep "Latency p99"       | awk '{print $5}')
 
@@ -37,7 +36,7 @@ run_engine() {
     pnl_total=$(echo "$pnl_r $pnl_u" | awk '{printf "%.4f", $1 + $2}')
     fill_rate=$(echo "$fill_count $DURATION" | awk '{printf "%.4f", $1 / $2}')
 
-    echo "$run_id,$lp,$lt,$pe,$run_set,$seed,$DURATION,$pnl_r,$pnl_u,$pnl_total,$fill_rate,$fill_count,$spread_mean,$pos_std,$pos_max,$hedge,$lat_p99" >> "$OUT"
+    echo "$run_id,$lp,$lt,$pe,$run_set,$seed,$DURATION,$pnl_r,$pnl_u,$pnl_total,$fill_rate,$fill_count,$spread_mean,$pos_std,$hedge,$lat_p99" >> "$OUT"
     echo "  run $run_id [$run_set] seed=$seed lp=${lp}us lt=${lt}us pe=${pe}us -> pnl=$pnl_total fills=$fill_count"
     run_id=$((run_id + 1))
 }

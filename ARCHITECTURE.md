@@ -14,7 +14,7 @@ Single C++ process, five threads. Three producer threads push events into three 
                      │ ◄─ LtOrder (SPSC)  ─────────  LT Thread  (Poisson arrivals)
                      │
                      ▼
-┌────────────────────-─────────────────────┐
+┌──────────────────────────────────────────┐
 │            PE Consumer Thread            │
 │                                          │
 │       Consolidated book (13 slots)       │
@@ -26,12 +26,12 @@ Single C++ process, five threads. Three producer threads push events into three 
 └────────────────────┬─────────────────────┘
                      │ seqlock read (5 Hz)
                      ▼
-┌─────────────────────────────────────-────┐
+┌──────────────────────────────────────────┐
 │         Metrics Publisher Thread         │
 └────────────────────┬─────────────────────┘
                      │ TCP NDJSON · localhost:8765
                      ▼
-┌─────────────────────--───────────────────┐
+┌──────────────────────────────────────────┐
 │           Streamlit Dashboard            │
 │              localhost:8501              │
 └──────────────────────────────────────────┘
@@ -83,7 +83,7 @@ Each item is stamped with `release_time = now + delay_ns` on entry and released 
 
 The signal-to-PE link has no injection. The signal generator is in-process.
 
-PE-to-book delay covers both PE quote updates and outbound hedge orders. In production they share the same outbound wire to the venue, so one parameter models both correctly.
+PE-to-book delay covers PE quote updates only. Hedge inventory adjustments are instantaneous; the post-hedge requote goes through the delay buffer. In production, hedge orders would share the same outbound wire and warrant a separate injection point, noted in LATENCY_STUDY.md as future work.
 
 ## Matching semantics
 
@@ -109,7 +109,7 @@ TCP NDJSON over shared memory or a Unix socket because it is debuggable with `nc
 
 ## Docker
 
-Both services use multi-stage builds pinned to `linux/amd64`. The engine image builds on `gcc:13-bookworm` and runs on `ubuntu:24.04`. `debian:bookworm-slim` was the first choice for the runtime stage but ships with `libstdc++6` from gcc 12, which is missing `GLIBCXX_3.4.32` required by a gcc 13 binary. `ubuntu:24.04` ships gcc 13's libstdc++ and resolves the mismatch cleanly without copying .so files or static linking. The dashboard uses `python:3.12-slim`. Pinning ensures the images run on x86_64 reviewer machines regardless of build host architecture.
+The engine uses a multi-stage build pinned to `linux/amd64`. The engine image builds on `gcc:13-bookworm` and runs on `ubuntu:24.04`. `debian:bookworm-slim` was the first choice for the runtime stage but ships with `libstdc++6` from gcc 12, which is missing `GLIBCXX_3.4.32` required by a gcc 13 binary. `ubuntu:24.04` ships gcc 13's libstdc++ and resolves the mismatch cleanly without copying .so files or static linking. The dashboard is a single-stage Python image, also pinned to `linux/amd64` and uses `python:3.12-slim`. Pinning ensures the images run on x86_64 reviewer machines regardless of build host architecture.
 
 The engine sources compile into `engine_lib`, a static library linked by three targets: the `engine` binary, `bench_throughput`, and `bench_latency`. Without this, bench sources would need to re-list every engine source file or the bench targets would get stale builds when engine sources change. The static library keeps CMakeLists clean and ensures the bench binaries always use the same compiled objects as the engine.
 

@@ -1,6 +1,6 @@
 # pricing-engine
 
-A market-making pricing engine that ingests high-frequency LP quotes and a directional signal, competes in a consolidated book to capture flow, skews quotes to manage inventory, and publishes a live dashboard. Built as a take-home for a Quant Developer role.
+A market-making pricing engine that ingests high-frequency LP quotes and a directional signal, competes in a consolidated book to capture flow, skews quotes to manage inventory, and publishes a live dashboard.
 
 ## Quickstart
 
@@ -72,7 +72,7 @@ A handful of choices that affect what the system can and cannot tell you. Each i
 
 ## Latency study
 
-PE-to-book is the dominant latency link. PnL falls from ~1450 to ~430 pip-units as PE-to-book delay increases from 0 to 10ms. Stale quote updates stay live in the book longer, LTs hit them adversely, and spread capture collapses. LP-to-PE latency shows a counterintuitive PnL rise, which is a simulation artifact: the LT has no adverse selection logic, so stale LP quotes do not hurt PE. LT-to-PE shows no clear trend. Full methodology, plots, and discussion in [LATENCY_STUDY.md](LATENCY_STUDY.md).
+PE-to-book is the dominant latency link. PnL falls from ~1510 to ~380 pip-units as PE-to-book delay increases from 0 to 10ms. Stale quote updates stay live in the book longer, LTs hit them adversely, and spread capture collapses. LP-to-PE latency shows no degradation, which is a simulation artifact: the LT has no adverse selection logic, so stale LP quotes do not hurt PE. LT-to-PE shows no clear trend. Full methodology, plots, and discussion in [LATENCY_STUDY.md](LATENCY_STUDY.md).
 
 ## Configuration
 

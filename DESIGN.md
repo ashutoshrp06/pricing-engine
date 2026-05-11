@@ -34,7 +34,7 @@ When `|position| >= hedge_threshold`, PE crosses the spread to reduce exposure. 
 
 After every hedge, PE requotes immediately using the updated (post-hedge) position. Without this, the quote would reflect stale inventory for the next several events.
 
-Hedge orders do not go through the LT queue. PE issues them directly to the book, simulating an outbound hedge to a specific LP. This is the same shape as a real PE sending a risk transfer to a named LP.
+Hedge orders do not go through any queue. PE crosses the spread at the best LP price and updates inventory directly. The book is not modified by the hedge; the simulation treats LP liquidity as infinite at the displayed quote. The PE-to-book delay applies to PE quote updates only, not to hedge inventory updates. This is listed as a deliberate abstraction in the "What is intentionally simple" section.
 
 The hedge is a last-resort mechanism. With `beta=0.4`, a position of 60 units shifts quote_mid by 24 ticks. That is a 24-tick differential between best bid and best ask for the opposing side, which is large enough to attract LT flow and flatten inventory before the threshold is hit in most cases. The hedge fires when that fails, typically during a run of one-sided LT flow.
 

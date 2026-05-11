@@ -28,31 +28,31 @@ Hedges did not trigger in any run at default parameters (hedge_threshold=60, bet
 
 ![PnL versus Injected Latency](docs/latency_pnl.png)
 
-PE-to-book is the only link with a clear PnL signal. PnL sits at 1447 pip-units at baseline, holds around 1489 at 100us, then drops monotonically to 1238 at 1ms and 431 at 10ms. Combined tracks it closely, reaching 485 at 10ms. LP-to-PE shows no degradation - PnL fluctuates between 1441 and 1554 with no directional trend. LT-to-PE drifts slightly lower at high latency (1360 at 10ms vs 1447 baseline) but the bands are wide and the signal is weak.
+PE-to-book is the only link with a clear PnL signal. PnL sits at 1511 pip-units at baseline, drops to 1390 at 100us, 1342 at 500us, 1235 at 1ms, 759 at 5ms, and 376 at 10ms. The drop is monotonic. Combined tracks PE-to-book closely up to 1ms then falls further, reaching 231 at 10ms. LP-to-PE shows no degradation - mean PnL ranges 1409 to 1548 across the tested latencies with no directional trend. LT-to-PE is also flat - means range from 1416 to 1537, all within seed variance of baseline.
 
 ![Fill Rate versus Injected Latency](docs/latency_fill_rate.png)
 
-Fill rate is flat across all runs and all links. The full range is 31.3 to 31.9 fills/sec. PE-to-book and combined show a marginal drop at 10ms (31.33 and 31.36 respectively) but it is within seed variance. No link moves fill rate meaningfully.
+Fill rate is flat across all runs and all links. The full range is 31.2 to 31.9 fills/sec. PE-to-book and combined show a marginal drop at 10ms (31.31 and 31.17 respectively) but it is within seed variance. No link moves fill rate meaningfully.
 
 ![Exposure versus Injected Latency](docs/latency_exposure.png)
 
-PE-to-book drives exposure up clearly above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.14 at 500us, then more sharply to 6.21 at 1ms, 6.67 at 5ms, and 7.13 at 10ms. Combined follows the same curve. LP-to-PE and LT-to-PE stay at or below baseline throughout, ranging 5.92 to 6.00, with no upward trend.
+PE-to-book drives exposure up clearly above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.04 at 500us and 6.11 at 1ms, then more sharply to 6.65 at 5ms and 7.09 at 10ms. Combined follows the same curve. LP-to-PE and LT-to-PE stay close to baseline throughout, ranging 5.80 to 6.03, with no upward trend.
 
 ## Discussion
 
-**Prediction 1 (LP-to-PE degrades PnL): wrong.** PnL rose. The reason is that the LT in this simulation has no adverse selection logic. A real liquidity taker would compare PE's stale quote against current LP quotes and hit PE only when the mispricing is in its favour. Here, the LT fires market orders without inspecting staleness. So the mispricing never gets exploited. Without adverse selection in the LT, mispriced PE quotes do not get systematically picked off. Stale LP quotes shift PE's mid reference around, but the resulting quote misalignment hits direction-blind LT flow, so PnL effects are noise-dominated rather than systematically negative. This is a simulation gap, not a real-world result, and is noted in the limitations.
+**Prediction 1 (LP-to-PE degrades PnL): wrong.** PnL stayed flat around baseline rather than degrading. The reason is that the LT in this simulation has no adverse selection logic. A real liquidity taker would compare PE's stale quote against current LP quotes and hit PE only when the mispricing is in its favour. Here, the LT fires market orders without inspecting staleness, so the mispricing never gets exploited. Stale LP quotes shift PE's mid reference around, but the resulting quote misalignment hits direction-blind LT flow, so PnL effects are noise-dominated rather than systematically negative. This is a simulation gap, not a real-world result, and is noted in the limitations.
 
 **Prediction 2 (LT-to-PE degrades PnL and raises exposure): wrong.**
 LT-to-PE shows a weak downward drift at high latency but the seed variance is large enough that the signal is not reliable, and exposure slightly decreased at high latency. When fill notifications arrive late, PE's beta skew reacts to inventory changes after a delay, which means PE quotes closer to mid for longer before the skew kicks in. That counterintuitively reduces position variance compared to aggressive immediate skewing. This is a second-order effect of the specific parameter values, not a general result.
 
-**Prediction 3 (PE-to-book degrades PnL): correct.** 
-The most robust result in the study. Stale PE quotes stay visible after PE would have pulled or repriced them. The LT hits them. PnL falls from 1447 to 431 pip-units across the tested range, monotonically. This is the stale-quote problem in market making and it shows up clearly.
+**Prediction 3 (PE-to-book degrades PnL): correct.**
+The most robust result in the study. Stale PE quotes stay visible after PE would have pulled or repriced them. The LT hits them. PnL falls from 1511 to 376 pip-units across the tested range, monotonically. This is the stale-quote problem in market making and it shows up clearly.
 
-**Prediction 4 (fill rate direction ambiguous): correct.** 
-Fill rate is flat; and is insensitive because stale quotes attract slightly more fills while PE's wider effective spread from delayed repricing slightly reduces LT hits. These effects cancel at these latency scales.
+**Prediction 4 (fill rate direction ambiguous): correct.**
+Fill rate is flat. Stale quotes attract slightly more fills while PE's wider effective spread from delayed repricing slightly reduces LT hits. These effects cancel at these latency scales.
 
 **Prediction 5 (exposure rises on every link): wrong for two of three links.**
-PE-to-book raised exposure as predicted, clearly and monotonically above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.14 at 500us, then more sharply to 6.21 at 1ms, 6.67 at 5ms, and 7.13 at 10ms. Hedges did not trigger in any of the 105 runs at default parameters - beta=0.4 keeps inventory self-correcting well below the 60-unit threshold through quote skew alone. The exposure rise under PE-to-book latency is therefore driven by quote-skew breakdown: stale PE quotes remain best for longer, attract one-sided LT flow before the skew can adjust, and accumulate position. LP-to-PE and LT-to-PE latency don't have this effect because they don't change how long PE's quote sits visible in the book.
+PE-to-book raised exposure as predicted, clearly and monotonically above 1ms. Position std dev sits at 6.00 at baseline, rises gradually to 6.04 at 500us and 6.11 at 1ms, then more sharply to 6.65 at 5ms and 7.09 at 10ms. Hedges did not trigger in any of the 105 runs at default parameters - beta=0.4 keeps inventory self-correcting well below the 60-unit threshold through quote skew alone. The exposure rise under PE-to-book latency is therefore driven by quote-skew breakdown: stale PE quotes remain best for longer, attract one-sided LT flow before the skew can adjust, and accumulate position. LP-to-PE and LT-to-PE latency don't have this effect because they don't change how long PE's quote sits visible in the book.
 
 The main result: PE-to-book latency is the most damaging link in this simulation. Quote update latency to the venue is the primary latency risk in any market-making system, and this study reproduces that.
 
@@ -70,4 +70,4 @@ The main result: PE-to-book latency is the most damaging link in this simulation
 
 The current model applies one constant latency per link, shared across all LPs. A more realistic model would assign heterogeneous per-LP latency profiles (LP1 at 50us, LP2 at 2ms) to study how PE behaves when some feeds are fresh and others are stale. This was scoped as a third-tier feature and not built for this submission.
 
-A second extension is to model PE-to-LP wire latency for outbound hedge orders as a fourth injection point. The current engine routes hedges through the same PE-to-book delay buffer as quote updates, which collapses two distinct production paths into one parameter. Splitting them would let the study separate quote-staleness cost from hedge-delivery cost.
+A second extension is to model PE-to-LP wire latency for outbound hedge orders as a fourth injection point. The current engine applies PE-to-book delay to quote updates only; hedge inventory adjustments are immediate, which collapses two distinct production paths into one parameter. Splitting them would let the study separate quote-staleness cost from hedge-delivery cost.
