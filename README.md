@@ -16,6 +16,8 @@ Open http://localhost:8501 in your browser. The dashboard should be live within 
 
 To stop: `Ctrl+C`, then `docker compose down`.
 
+If you have cached images from a previous run: `docker system prune -a -f` before `docker compose up`.
+
 ## Native build (Linux / macOS)
 
 Requires cmake 3.15+, gcc 13+, and Python 3.12+. See your OS package manager for installation.
